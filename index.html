@@ -1530,7 +1530,8 @@ async function saveTeamLogos(tournamentId, logos){
 async function loadMatches(tournamentId) {
   // Intentamos obtener el archivo CSV desde el repositorio de GitHub de forma relativa
   try {
-    const response = await fetch('./partidos.csv');
+    // Usamos la ruta absoluta del dominio para asegurar que lo encuentre siempre en la raíz
+    const response = await fetch(window.location.origin + window.location.pathname.replace('index.html', '') + 'partidos.csv');
     if (response.ok) {
       const csvText = await response.text();
       const lines = csvText.split(/\r?\n/);
