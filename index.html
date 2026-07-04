@@ -1527,15 +1527,71 @@ async function saveTeamLogos(tournamentId, logos){
   return {ok:confirmed, tooBig:false};
 }
 
-async function loadMatches(tournamentId){
-  const raw = await safeGet(matchesKey(tournamentId), true);
-  if(raw){
-    try{ return JSON.parse(raw); }catch(e){ /* fall through */ }
+async function loadMatches(tournamentId) {
+  // Intentamos obtener el archivo CSV desde el repositorio de GitHub de forma relativa
+  try {
+    const response = await fetch('./partidos.csv');
+    if (response.ok) {
+      const csvText = await response.text();
+      const lines = csvText.split(/\r?\n/);
+      if (lines.length > 1) {
+        const headers = lines[0].split(',');
+        const matchesFromCSV = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          
+          // Dividir por comas, respetando comas dentro de comillas si las hubiera
+          const currentline = lines[i].split(',');
+          
+          // Crear el objeto mapeando las columnas del CSV original
+          const matchObj = {
+            tournament: currentline[0],
+            name_esp: currentline[1],
+            name_eng: currentline[2],
+            id: currentline[3],
+            round: currentline[4],
+            group: currentline[5],
+            season: currentline[6],
+            home: currentline[7],
+            away: currentline[8],
+            venue: currentline[9],
+            date: currentline[10],
+            time: currentline[11],
+            status: currentline[12] || 'pending',
+            reg_home: currentline[13] !== "" && currentline[13] !== undefined ? parseInt(currentline[13]) : null,
+            reg_away: currentline[14] !== "" && currentline[14] !== undefined ? parseInt(currentline[14]) : null,
+            et_home: currentline[15] !== "" && currentline[15] !== undefined ? parseInt(currentline[15]) : null,
+            et_away: currentline[16] !== "" && currentline[16] !== undefined ? parseInt(currentline[16]) : null,
+            pen_home: currentline[17] !== "" && currentline[17] !== undefined ? parseInt(currentline[17]) : null,
+            pen_away: currentline[18] !== "" && currentline[18] !== undefined ? parseInt(currentline[18]) : null
+          };
+          
+          matchesFromCSV.push(matchObj);
+        }
+        
+        // Guardar una copia de respaldo en localStorage por si acaso
+        localStorage.setItem('quiniela_matches_backup', JSON.stringify(matchesFromCSV));
+        
+        // Filtrar y retornar solo los partidos del torneo seleccionado
+        return matchesFromCSV.filter(m => m.tournament === tournamentId);
+      }
+    }
+  } catch (error) {
+    console.warn("No se pudo cargar el CSV de GitHub, usando datos locales de respaldo:", error);
   }
-  // Sembrar datos por primera vez (para torneos nuevos, arranca en vacío)
-  const seed = SEED_MATCHES_BY_TOURNAMENT[tournamentId] || [];
-  await safeSet(matchesKey(tournamentId), JSON.stringify(seed), true);
-  return seed.slice();
+
+  // Si falla el fetch, cae en la lógica por defecto del localStorage
+  const stored = localStorage.getItem(`quiniela_matches_${tournamentId}`);
+  if(stored) return JSON.parse(stored);
+  
+  const backup = localStorage.getItem('quiniela_matches_backup');
+  if(backup) {
+    const parsedBackup = JSON.parse(backup);
+    return parsedBackup.filter(m => m.tournament === tournamentId);
+  }
+
+  return (window.BASE_MATCHES || []).filter(m => m.tournament === tournamentId);
 }
 
 async function loadProfile(){
