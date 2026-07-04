@@ -1528,24 +1528,43 @@ async function saveTeamLogos(tournamentId, logos){
 }
 
 async function loadMatches(tournamentId) {
-  // Intentamos obtener el archivo CSV desde el repositorio de GitHub de forma relativa
+  // Intentamos obtener el archivo CSV desde el repositorio de GitHub
   try {
-    // Usamos la ruta absoluta del dominio para asegurar que lo encuentre siempre en la raíz
     const response = await fetch(window.location.origin + window.location.pathname.replace('index.html', '') + 'partidos.csv');
     if (response.ok) {
       const csvText = await response.text();
       const lines = csvText.split(/\r?\n/);
       if (lines.length > 1) {
-        const headers = lines[0].split(',');
         const matchesFromCSV = [];
         
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
           
-          // Dividir por comas, respetando comas dentro de comillas si las hubiera
           const currentline = lines[i].split(',');
           
-          // Crear el objeto mapeando las columnas del CSV original
+          let rawDate = currentline[10] || ''; // DD/MM/AAAA
+          let rawTime = currentline[11] || ''; // HH:MM:SS
+          let formattedDate = rawDate;
+
+          // Si la fecha viene en formato DD/MM/AAAA, la transformamos a AAAA-MM-DD para evitar errores en JavaScript
+          if (rawDate.includes('/')) {
+            const parts = rawDate.split('/');
+            if (parts.length === 3) {
+              const day = parts[0].padStart(2, '0');
+              const month = parts[1].padStart(2, '0');
+              const year = parts[2];
+              formattedDate = `${year}-${month}-${day}`;
+            }
+          }
+
+          // Limpiar la hora para asegurar que tenga el formato HH:MM (removiendo segundos si los trae)
+          if (rawTime.includes(':')) {
+            const timeParts = rawTime.split(':');
+            if (timeParts.length >= 2) {
+              rawTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}`;
+            }
+          }
+          
           const matchObj = {
             tournament: currentline[0],
             name_esp: currentline[1],
@@ -1557,8 +1576,8 @@ async function loadMatches(tournamentId) {
             home: currentline[7],
             away: currentline[8],
             venue: currentline[9],
-            date: currentline[10],
-            time: currentline[11],
+            date: formattedDate, // Guardamos la fecha estandarizada
+            time: rawTime,      // Guardamos la hora limpia
             status: currentline[12] || 'pending',
             reg_home: currentline[13] !== "" && currentline[13] !== undefined ? parseInt(currentline[13]) : null,
             reg_away: currentline[14] !== "" && currentline[14] !== undefined ? parseInt(currentline[14]) : null,
@@ -1571,13 +1590,29 @@ async function loadMatches(tournamentId) {
           matchesFromCSV.push(matchObj);
         }
         
-        // Guardar una copia de respaldo en localStorage por si acaso
+        // Guardar una copia de respaldo en localStorage
         localStorage.setItem('quiniela_matches_backup', JSON.stringify(matchesFromCSV));
         
         // Filtrar y retornar solo los partidos del torneo seleccionado
         return matchesFromCSV.filter(m => m.tournament === tournamentId);
       }
     }
+  } catch (error) {
+    console.warn("No se pudo cargar el CSV de GitHub, usando datos locales de respaldo:", error);
+  }
+
+  // Si falla el fetch, cae en la lógica por defecto del localStorage o respaldo
+  const stored = localStorage.getItem(`quiniela_matches_${tournamentId}`);
+  if(stored) return JSON.parse(stored);
+  
+  const backup = localStorage.getItem('quiniela_matches_backup');
+  if(backup) {
+    const parsedBackup = JSON.parse(backup);
+    return parsedBackup.filter(m => m.tournament === tournamentId);
+  }
+
+  return (window.BASE_MATCHES || []).filter(m => m.tournament === tournamentId);
+}    }
   } catch (error) {
     console.warn("No se pudo cargar el CSV de GitHub, usando datos locales de respaldo:", error);
   }
