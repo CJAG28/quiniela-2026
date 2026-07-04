@@ -1534,11 +1534,39 @@ async function loadMatches(tournamentId) {
     csvTournamentId = 'worldcup';
   }
 
+  // Función interna para convertir el número serial de Excel a Fecha (AAAA-MM-DD)
+  function excelSerialToDate(serial) {
+    const s = parseFloat(serial);
+    if (isNaN(s)) return '';
+    // Excel erróneamente considera 1900 como año bisiesto, por eso el ajuste de -2 días si es necesario,
+    // pero el estándar para fechas actuales con el epoch de JS suele requerir restar 70 años y ajustar días.
+    const excelEpoch = new Date(1899, 11, 30);
+    const date = new Date(excelEpoch.getTime() + s * 24 * 60 * 60 * 1000);
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Función interna para convertir la fracción decimal de Excel a Hora (HH:MM)
+  function excelSerialToTime(serial) {
+    const s = parseFloat(serial);
+    if (isNaN(s)) return '';
+    // Extraemos solo la parte decimal si viene junta, o usamos el valor si es solo la fracción
+    const decimalPart = s % 1;
+    if (decimalPart === 0 && s >= 1) return '00:00'; // Si es un entero exacto sin decimal, asumimos medianoche o no especificado
+    
+    const totalSeconds = Math.round(decimalPart * 24 * 60 * 60);
+    const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
   // Intentamos obtener el archivo CSV desde el repositorio de GitHub
   try {
     const response = await fetch(window.location.origin + window.location.pathname.replace('index.html', '') + 'partidos.csv');
     if (response.ok) {
-      // Forzamos la lectura del archivo en formato Latin-1 (para conservar tildes y eñes)
       const arrayBuffer = await response.arrayBuffer();
       const decoder = new TextDecoder('windows-1252'); // Formato Latin estándar
       const csvText = decoder.decode(arrayBuffer);
@@ -1552,12 +1580,16 @@ async function loadMatches(tournamentId) {
           
           const currentline = lines[i].split(',');
           
-          let rawDate = currentline[10] || ''; // DD/MM/AAAA
-          let rawTime = currentline[11] || ''; // HH:MM:SS
+          let rawDate = (currentline[10] || '').trim(); // Columna Date
+          let rawTime = (currentline[11] || '').trim(); // Columna Time
           let formattedDate = rawDate;
 
-          // Convertir fecha de DD/MM/AAAA a AAAA-MM-DD
-          if (rawDate.includes('/')) {
+          // CASO 1: Viene como número serial de Excel (ej. "46194")
+          if (rawDate && !isNaN(rawDate) && !rawDate.includes('/') && !rawDate.includes('-')) {
+            formattedDate = excelSerialToDate(rawDate);
+          } 
+          // CASO 2: Viene en formato texto estándar DD/MM/AAAA
+          else if (rawDate.includes('/')) {
             const parts = rawDate.split('/');
             if (parts.length === 3) {
               const day = parts[0].padStart(2, '0');
@@ -1567,8 +1599,13 @@ async function loadMatches(tournamentId) {
             }
           }
 
-          // Limpiar formato de hora a HH:MM
-          if (rawTime.includes(':')) {
+          // Procesar la Hora
+          // CASO 1: Viene como fracción de Excel (ej. "0.666666667")
+          if (rawTime && !isNaN(rawTime) && !rawTime.includes(':')) {
+            rawTime = excelSerialToTime(rawTime);
+          } 
+          // CASO 2: Viene como texto estándar HH:MM:SS
+          else if (rawTime.includes(':')) {
             const timeParts = rawTime.split(':');
             if (timeParts.length >= 2) {
               rawTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}`;
@@ -1607,6 +1644,22 @@ async function loadMatches(tournamentId) {
         return matchesFromCSV.filter(m => m.tournament === csvTournamentId);
       }
     }
+  } catch (error) {
+    console.warn("No se pudo cargar el CSV de GitHub, usando datos locales de respaldo:", error);
+  }
+
+  // Si falla el fetch, cae en la lógica de respaldo
+  const stored = localStorage.getItem(`quiniela_matches_${tournamentId}`);
+  if(stored) return JSON.parse(stored);
+  
+  const backup = localStorage.getItem('quiniela_matches_backup');
+  if(backup) {
+    const parsedBackup = JSON.parse(backup);
+    return parsedBackup.filter(m => m.tournament === csvTournamentId);
+  }
+
+  return (window.BASE_MATCHES || []).filter(m => m.tournament === tournamentId);
+}    }
   } catch (error) {
     console.warn("No se pudo cargar el CSV de GitHub, usando datos locales de respaldo:", error);
   }
