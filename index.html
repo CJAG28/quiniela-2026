@@ -1528,11 +1528,21 @@ async function saveTeamLogos(tournamentId, logos){
 }
 
 async function loadMatches(tournamentId) {
+  // Mapeo inteligente por si los IDs del HTML y del CSV difieren
+  let csvTournamentId = tournamentId;
+  if (tournamentId === 'world_cup_2026') {
+    csvTournamentId = 'worldcup';
+  }
+
   // Intentamos obtener el archivo CSV desde el repositorio de GitHub
   try {
     const response = await fetch(window.location.origin + window.location.pathname.replace('index.html', '') + 'partidos.csv');
     if (response.ok) {
-      const csvText = await response.text();
+      // Forzamos la lectura del archivo en formato Latin-1 (para conservar tildes y eñes)
+      const arrayBuffer = await response.arrayBuffer();
+      const decoder = new TextDecoder('windows-1252'); // Formato Latin estándar
+      const csvText = decoder.decode(arrayBuffer);
+      
       const lines = csvText.split(/\r?\n/);
       if (lines.length > 1) {
         const matchesFromCSV = [];
@@ -1546,7 +1556,7 @@ async function loadMatches(tournamentId) {
           let rawTime = currentline[11] || ''; // HH:MM:SS
           let formattedDate = rawDate;
 
-          // Si la fecha viene en formato DD/MM/AAAA, la transformamos a AAAA-MM-DD para evitar errores en JavaScript
+          // Convertir fecha de DD/MM/AAAA a AAAA-MM-DD
           if (rawDate.includes('/')) {
             const parts = rawDate.split('/');
             if (parts.length === 3) {
@@ -1557,7 +1567,7 @@ async function loadMatches(tournamentId) {
             }
           }
 
-          // Limpiar la hora para asegurar que tenga el formato HH:MM (removiendo segundos si los trae)
+          // Limpiar formato de hora a HH:MM
           if (rawTime.includes(':')) {
             const timeParts = rawTime.split(':');
             if (timeParts.length >= 2) {
@@ -1576,8 +1586,8 @@ async function loadMatches(tournamentId) {
             home: currentline[7],
             away: currentline[8],
             venue: currentline[9],
-            date: formattedDate, // Guardamos la fecha estandarizada
-            time: rawTime,      // Guardamos la hora limpia
+            date: formattedDate,
+            time: rawTime,
             status: currentline[12] || 'pending',
             reg_home: currentline[13] !== "" && currentline[13] !== undefined ? parseInt(currentline[13]) : null,
             reg_away: currentline[14] !== "" && currentline[14] !== undefined ? parseInt(currentline[14]) : null,
@@ -1590,12 +1600,29 @@ async function loadMatches(tournamentId) {
           matchesFromCSV.push(matchObj);
         }
         
-        // Guardar una copia de respaldo en localStorage
+        // Guardar copia completa de respaldo en localStorage
         localStorage.setItem('quiniela_matches_backup', JSON.stringify(matchesFromCSV));
         
-        // Filtrar y retornar solo los partidos del torneo seleccionado
-        return matchesFromCSV.filter(m => m.tournament === tournamentId);
+        // Retornar filtrando bajo el ID correcto que viene en tu CSV
+        return matchesFromCSV.filter(m => m.tournament === csvTournamentId);
       }
+    }
+  } catch (error) {
+    console.warn("No se pudo cargar el CSV de GitHub, usando datos locales de respaldo:", error);
+  }
+
+  // Si falla el fetch, cae en la lógica de respaldo
+  const stored = localStorage.getItem(`quiniela_matches_${tournamentId}`);
+  if(stored) return JSON.parse(stored);
+  
+  const backup = localStorage.getItem('quiniela_matches_backup');
+  if(backup) {
+    const parsedBackup = JSON.parse(backup);
+    return parsedBackup.filter(m => m.tournament === csvTournamentId);
+  }
+
+  return (window.BASE_MATCHES || []).filter(m => m.tournament === tournamentId);
+}
     }
   } catch (error) {
     console.warn("No se pudo cargar el CSV de GitHub, usando datos locales de respaldo:", error);
