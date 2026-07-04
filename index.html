@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi Quiniela 2026</title>
   <style>
-    /* Estilos base con modo oscuro moderno */
     :root {
       --bg-dark: #060B18;
       --bg-panel: #0E2340;
@@ -15,6 +14,7 @@
       --green: #00B36B;
       --blue: #2F80ED;
       --gold: #FFD166;
+      --red: #FF4D4D;
     }
 
     body {
@@ -44,12 +44,37 @@
     }
 
     .container {
-      width: 90%;
-      max-width: 1000px;
+      width: 95%;
+      max-width: 900px;
       margin: 20px 0;
     }
 
-    /* Estado de Carga */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      overflow-x: auto;
+      padding-bottom: 5px;
+    }
+
+    .tab-btn {
+      background-color: var(--bg-panel);
+      color: var(--text-muted);
+      border: 2px solid var(--bg-accent);
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      white-space: nowrap;
+      transition: all 0.3s;
+    }
+
+    .tab-btn.active {
+      background-color: var(--blue);
+      color: var(--text-main);
+      border-color: var(--blue);
+    }
+
     #loading-screen {
       display: flex;
       flex-direction: column;
@@ -72,31 +97,6 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Tabs de Torneos */
-    .tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .tab-btn {
-      background-color: var(--bg-panel);
-      color: var(--text-muted);
-      border: 2px solid var(--bg-accent);
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.3s;
-    }
-
-    .tab-btn.active {
-      background-color: var(--blue);
-      color: var(--text-main);
-      border-color: var(--blue);
-    }
-
-    /* Contenedor de Partidos */
     .matches-list {
       display: grid;
       grid-template-columns: 1fr;
@@ -108,30 +108,116 @@
       border-radius: 8px;
       padding: 15px;
       display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-left: 5px solid var(--bg-accent);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .match-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .match-body {
+      display: flex;
       justify-content: space-between;
       align-items: center;
-      border-left: 5px solid var(--bg-accent);
+      gap: 10px;
     }
 
-    .match-info {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    .teams-container {
+    .team-block {
+      flex: 1;
       display: flex;
       align-items: center;
-      gap: 20px;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
       font-weight: 500;
     }
+    .team-block.home-team { justify-content: flex-end; text-align: right; }
+    .team-block.away-team { justify-content: flex-start; text-align: left; }
 
-    .score {
+    .prediction-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       background-color: var(--bg-dark);
-      padding: 5px 10px;
-      border-radius: 4px;
-      color: var(--gold);
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+
+    .pred-input {
+      width: 35px;
+      height: 30px;
+      background-color: var(--bg-accent);
+      border: 1px solid var(--line);
+      color: var(--text-main);
+      text-align: center;
+      font-size: 1.1rem;
       font-weight: bold;
+      border-radius: 4px;
+    }
+    .pred-input:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    .vs-label {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: bold;
+    }
+
+    .real-score-badge {
+      font-size: 0.8rem;
+      background-color: rgba(255,209,102,0.1);
+      color: var(--gold);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .points-badge {
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.85rem;
+    }
+    .pts-5 { background-color: var(--green); color: white; }
+    .pts-4 { background-color: #0099ff; color: white; }
+    .pts-3 { background-color: #9b51e0; color: white; }
+    .pts-1 { background-color: #e28743; color: white; }
+    .pts-0 { background-color: #4f5d75; color: var(--text-muted); }
+
+    .status-indicator {
+      font-weight: bold;
+      font-size: 0.8rem;
+    }
+
+    .save-section {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 15px;
+    }
+
+    .btn-save {
+      background-color: var(--green);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      transition: background 0.2s;
+    }
+    .btn-save:hover {
+      background-color: #00995c;
     }
   </style>
 </head>
@@ -150,30 +236,35 @@
 
     <div id="loading-screen">
       <div class="spinner"></div>
-      <p style="color: var(--text-muted); margin-top: 15px;">Cargando partidos desde el servidor...</p>
+      <p style="color: var(--text-muted); margin-top: 15px;">Cargando partidos oficiales...</p>
     </div>
 
-    <div class="matches-list" id="matches-container" style="display: none;"></div>
+    <div id="main-content" style="display: none;">
+      <div class="matches-list" id="matches-container"></div>
+      
+      <div class="save-section">
+        <button class="btn-save" onclick="saveUserPredictions()">💾 Guardar Mis Pronósticos</button>
+      </div>
+    </div>
   </div>
 
   <script>
-    // Estado global de nuestra aplicación simplificada
+    // Estado de la aplicación
     const state = {
       currentTournament: 'worldcup',
-      allMatches: []
+      allMatches: [],
+      userPredictions: {} // Formato: { matchId: { home: X, away: Y } }
     };
 
-    // Auxiliar: Convertir número serial de Excel a Fecha (AAAA-MM-DD)
+    // Auxiliares de Excel
     function excelSerialToDate(serial) {
       const s = parseFloat(serial);
       if (isNaN(s) || s <= 0) return '';
       const excelEpoch = new Date(1899, 11, 30);
       const date = new Date(excelEpoch.getTime() + s * 24 * 60 * 60 * 1000);
-      if (isNaN(date.getTime())) return '';
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      return isNaN(date.getTime()) ? '' : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
     }
 
-    // Auxiliar: Convertir decimal de Excel a Hora (HH:MM)
     function excelSerialToTime(serial) {
       const s = parseFloat(serial);
       if (isNaN(s)) return '';
@@ -183,16 +274,49 @@
       return `${String(Math.floor(totalSeconds / 3600)).padStart(2, '0')}:${String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0')}`;
     }
 
-    // Cargar y procesar el CSV de forma ultra-segura
+    // LÓGICA DE CÁLCULO DE PUNTOS PERSONALIZADA
+    function calculatePoints(predHome, predAway, realHome, realHomeVal, realAwayVal) {
+      // Si el partido no tiene resultado oficial válido, no se calculan puntos
+      if (realHomeVal === '-' || realAwayVal === '-' || isNaN(realHomeVal) || isNaN(realAwayVal)) return null;
+      if (predHome === undefined || predAway === undefined || predHome === '' || predAway === '') return 0;
+
+      const pHome = parseInt(predHome);
+      const pAway = parseInt(predAway);
+      const rHome = parseInt(realHomeVal);
+      const rAway = parseInt(realAwayVal);
+
+      // Determinar tendencias (Ganador/Empate)
+      // 1 = Gana Local, 2 = Gana Visita, 0 = Empate
+      const predTrend = pHome > pAway ? 1 : (pHome < pAway ? 2 : 0);
+      const realTrend = rHome > rAway ? 1 : (rHome < rAway ? 2 : 0);
+
+      const hitTrend = (predTrend === realTrend);
+      const hitHomeScore = (pHome === rHome);
+      const hitAwayScore = (pAway === rAway);
+
+      // Regla 5: Atina el marcador completo
+      if (hitHomeScore && hitAwayScore) return 5;
+
+      // Regla 4: Atina al ganador/perdedor/empate Y uno de cualquiera de los dos marcadores
+      if (hitTrend && (hitHomeScore || hitAwayScore)) return 4;
+
+      // Regla 3: Atina el ganador/perdedor o un empate donde NO coincida el marcador exacto
+      if (hitTrend) return 3;
+
+      // Regla 1: NO atina la tendencia, pero sí le pegó al marcador individual de un equipo
+      if (hitHomeScore || hitAwayScore) return 1;
+
+      // 0 puntos si falló todo por completo
+      return 0;
+    }
+
+    // Cargar partidos del CSV de GitHub
     async function loadMatchesFromCSV() {
       try {
-        // Buscamos dinámicamente el archivo 'partidos.csv' en la raíz de tu GitHub Pages
         const csvUrl = window.location.origin + window.location.pathname.replace('index.html', '') + 'partidos.csv';
         const response = await fetch(csvUrl);
-        
-        if (!response.ok) throw new Error("No se encontró partidos.csv en el repositorio");
+        if (!response.ok) throw new Error("No se encontró el archivo partidos.csv");
 
-        // Decodificar explícitamente en Windows-1252 (Latin-1) para salvar tildes y eñes
         const arrayBuffer = await response.arrayBuffer();
         const decoder = new TextDecoder('windows-1252');
         const csvText = decoder.decode(arrayBuffer);
@@ -200,18 +324,15 @@
         const lines = csvText.split(/\r?\n/);
         const processedMatches = [];
 
-        // Procesamos línea por línea (saltando cabecera i=0)
         for (let i = 1; i < lines.length; i++) {
           if (!lines[i].trim()) continue;
-
           try {
             const row = lines[i].split(',');
-            if (row.length < 4) continue; // Ignorar líneas incompletas
+            if (row.length < 4) continue;
 
             let rawDate = (row[10] || '').trim();
             let rawTime = (row[11] || '').trim();
             
-            // Validar/Convertir Fecha de Excel o Estándar
             if (rawDate && !isNaN(rawDate) && !rawDate.includes('/') && !rawDate.includes('-')) {
               rawDate = excelSerialToDate(rawDate);
             } else if (rawDate.includes('/')) {
@@ -219,7 +340,6 @@
               if (p.length === 3) rawDate = `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
             }
 
-            // Validar/Convertir Hora de Excel o Estándar
             if (rawTime && !isNaN(rawTime) && !rawTime.includes(':')) {
               rawTime = excelSerialToTime(rawTime);
             } else if (rawTime.includes(':')) {
@@ -239,32 +359,39 @@
               date: rawDate || 'Por definir',
               time: rawTime || 'Por confirmar',
               status: row[12] || 'pending',
-              reg_home: row[13] !== "" && row[13] !== undefined && !isNaN(row[13]) ? parseInt(row[13]) : '-',
-              reg_away: row[14] !== "" && row[14] !== undefined && !isNaN(row[14]) ? parseInt(row[14]) : '-'
+              reg_home: row[13] !== "" && row[13] !== undefined && !isNaN(row[13]) ? row[13].trim() : '-',
+              reg_away: row[14] !== "" && row[14] !== undefined && !isNaN(row[14]) ? row[14].trim() : '-'
             });
-
-          } catch (rowErr) {
-            console.error(`Error en fila ${i}:`, rowErr);
-          }
+          } catch (rErr) { console.error(rErr); }
         }
 
         state.allMatches = processedMatches;
+        
+        // Cargar pronósticos guardados previamente en el localStorage de este usuario
+        const localPreds = localStorage.getItem('my_quiniela_predictions');
+        if (localPreds) {
+          state.userPredictions = JSON.parse(localPreds);
+        }
+
         document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('matches-container').style.display = 'grid';
+        document.getElementById('main-content').style.display = 'block';
         renderMatches();
 
       } catch (err) {
-        console.error("Error crítico cargando la base de datos:", err);
-        document.getElementById('loading-screen').innerHTML = `<p style="color:var(--red)">⚠️ Error al conectar con la base de datos (partidos.csv).</p>`;
+        console.error(err);
+        document.getElementById('loading-screen').innerHTML = `<p style="color:var(--red); font-weight:bold;">⚠️ Error al enlazar la base de datos (partidos.csv).</p>`;
       }
     }
 
-    // Dibujar los partidos del torneo seleccionado en pantalla
+    // Dibujar las tarjetas con inputs de predicciones en pantalla
     function renderMatches() {
       const container = document.getElementById('matches-container');
       container.innerHTML = '';
 
-      const filtered = state.allMatches.filter(m => m.tournament === state.currentTournament);
+      let csvTournamentId = state.currentTournament;
+      if (state.currentTournament === 'worldcup') csvTournamentId = 'worldcup';
+
+      const filtered = state.allMatches.filter(m => m.tournament === csvTournamentId);
 
       if (filtered.length === 0) {
         container.innerHTML = `<p style="color: var(--text-muted); text-align:center;">No hay partidos registrados para este torneo todavía.</p>`;
@@ -272,41 +399,83 @@
       }
 
       filtered.forEach(match => {
+        // Recuperar si ya existe un pronóstico escrito para este partido
+        const pred = state.userPredictions[match.id] || { home: '', away: '' };
+        
+        // Calcular puntos obtenidos si el partido ya terminó
+        const points = calculatePoints(pred.home, pred.away, match.home, match.reg_home, match.reg_away);
+
+        let pointsBadgeHTML = '';
+        if (points !== null) {
+          pointsBadgeHTML = `<span class="points-badge pts-${points}">+${points} PTS</span>`;
+        }
+
         const card = document.createElement('div');
         card.className = 'match-card';
         card.innerHTML = `
-          <div>
-            <div class="match-info">${match.round.toUpperCase()} ${match.group ? '• ' + match.group : ''}</div>
-            <div class="teams-container">
+          <div class="match-header">
+            <span>⚽ ${match.round} ${match.group ? '• ' + match.group : ''}</span>
+            <div style="display:flex; gap:8px; align-items:center;">
+              ${pointsBadgeHTML}
+              <span class="status-indicator" style="color: ${match.status === 'finished' ? 'var(--green)' : 'var(--blue)'}">
+                ${match.status === 'finished' ? '● FINALIZADO' : '○ PENDIENTE'}
+              </span>
+            </div>
+          </div>
+
+          <div class="match-body">
+            <div class="team-block home-team">
               <span>${match.home}</span>
-              <span class="score">${match.reg_home}</span>
-              <span>vs</span>
-              <span class="score">${match.reg_away}</span>
+            </div>
+
+            <div class="prediction-row">
+              <input type="number" min="0" class="pred-input" id="pred-home-${match.id}" value="${pred.home}" onchange="updatePredLive('${match.id}', 'home', this.value)">
+              <span class="vs-label">VS</span>
+              <input type="number" min="0" class="pred-input" id="pred-away-${match.id}" value="${pred.away}" onchange="updatePredLive('${match.id}', 'away', this.value)">
+            </div>
+
+            <div class="team-block away-team">
               <span>${match.away}</span>
             </div>
-            <div class="match-info" style="margin-top: 5px;">📅 ${match.date}  🕒 ${match.time} ${match.venue ? '📍 ' + match.venue : ''}</div>
           </div>
-          <div style="font-weight: bold; font-size: 0.85rem; color: ${match.status === 'finished' ? 'var(--green)' : 'var(--blue)'}">
-            ${match.status === 'finished' ? '● FINALIZADO' : '○ PENDIENTE'}
+
+          <div class="match-header" style="margin-top:2px;">
+            <span>📅 ${match.date} &nbsp;|&nbsp; 🕒 ${match.time} ${match.venue ? '&nbsp;|&nbsp; 📍 ' + match.venue : ''}</span>
+            ${match.status === 'finished' ? `<span class="real-score-badge">Resultado Real: ${match.reg_home} - ${match.reg_away}</span>` : ''}
           </div>
         `;
         container.appendChild(card);
       });
     }
 
-    // Cambiar de pestaña de torneo
+    // Actualizar el estado temporal mientras el usuario escribe
+    function updatePredLive(matchId, side, value) {
+      if (!state.userPredictions[matchId]) {
+        state.userPredictions[matchId] = { home: '', away: '' };
+      }
+      state.userPredictions[matchId][side] = value;
+    }
+
+    // Guardar definitivamente los pronósticos escritos en el dispositivo
+    function saveUserPredictions() {
+      localStorage.setItem('my_quiniela_predictions', JSON.stringify(state.userPredictions));
+      alert("🏆 ¡Tus pronósticos han sido guardados con éxito en tu dispositivo!");
+      renderMatches(); // Refrescar vista para actualizar medallas de puntos si aplica
+    }
+
+    // Cambiar de pestaña
     function switchTournament(tournamentId) {
       state.currentTournament = tournamentId;
-      
-      // Actualizar estados visuales de los botones
       const buttons = document.querySelectorAll('.tab-btn');
       buttons.forEach(btn => btn.classList.remove('active'));
-      event.target.classList.add('active');
+      
+      // Buscar el botón presionado
+      const clickedBtn = Array.from(buttons).find(b => b.getAttribute('onclick').includes(tournamentId));
+      if(clickedBtn) clickedBtn.classList.add('active');
 
       renderMatches();
     }
 
-    // Inicializar la aplicación al cargar el DOM
     window.addEventListener('DOMContentLoaded', loadMatchesFromCSV);
   </script>
 </body>
