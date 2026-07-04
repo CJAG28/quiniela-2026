@@ -1,454 +1,866 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiniela Mundial 2026</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Graduate&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background: radial-gradient(circle at center, #14532d, #052e16);
-        }
-        .font-scoreboard {
-            font-family: 'Graduate', monospace;
-        }
-        /* Estilo césped */
-        .pitch-bg {
-            background-color: #15803d;
-            background-image: linear-gradient(rgba(255,255,255,0.1) 2px, transparent 2px),
-                              linear-gradient(90deg, rgba(255,255,255,0.1) 2px, transparent 2px);
-            background-size: 40px 40px;
-        }
-    </style>
-</head>
-<body class="min-h-screen text-white p-4 sm:p-6" id="app">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiniela Mundial 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root, [data-theme="dark"]{
+    --bg:#0a0c11;
+    --bg-soft:#0d1017;
+    --surface:#151822;
+    --surface-2:#1b1f2b;
+    --border:#262b3a;
+    --text:#eef0f6;
+    --text-dim:#8d94a8;
+    --accent:#5b6cff;
+    --accent-2:#22d3ee;
+    --accent-ink:#ffffff;
+    --success:#34d399;
+    --success-bg:#12291f;
+    --danger:#f87171;
+    --danger-bg:#2a1518;
+    --gold:#f2c14e;
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+  }
+  [data-theme="light"]{
+    --bg:#f3f4f8;
+    --bg-soft:#eceef4;
+    --surface:#ffffff;
+    --surface-2:#f5f6fa;
+    --border:#e2e4ec;
+    --text:#161821;
+    --text-dim:#6b7180;
+    --accent:#4f46e5;
+    --accent-2:#0891b2;
+    --accent-ink:#ffffff;
+    --success:#059669;
+    --success-bg:#e3f7ee;
+    --danger:#dc2626;
+    --danger-bg:#fdecec;
+    --gold:#b8860b;
+    --shadow: 0 10px 30px rgba(20,20,40,.08);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--text);
+    background:var(--bg);
+    min-height:100vh;
+    transition:background .25s ease, color .25s ease;
+  }
+  #app{
+    max-width:640px;
+    margin:0 auto;
+    padding:16px 14px 60px;
+  }
+  h1,h2{font-family:'Space Grotesk',sans-serif; margin:0;}
 
-    <header class="max-w-5xl mx-auto flex justify-between items-center mb-6 border-b border-green-600 pb-4">
+  /* ---------- HEADER ---------- */
+  header.top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:12px 14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    position:sticky;
+    top:10px;
+    z-index:30;
+  }
+  .brand{display:flex; align-items:center; gap:10px; min-width:0;}
+  .brand svg{flex-shrink:0; display:block;}
+  .brand h1{
+    font-weight:700;
+    font-size:19px;
+    line-height:1.1;
+    color:var(--text);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .brand small{
+    display:block;
+    font-size:11.5px;
+    color:var(--text-dim);
+    margin-top:1px;
+  }
+  .top-actions{display:flex; gap:6px; flex-shrink:0; align-items:center;}
+  .seg{
+    display:flex;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:999px;
+    padding:3px;
+  }
+  .seg button{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:11px;
+    letter-spacing:.5px;
+    background:transparent;
+    color:var(--text-dim);
+    border:none;
+    border-radius:999px;
+    padding:6px 10px;
+    cursor:pointer;
+  }
+  .seg button.active{background:var(--accent); color:var(--accent-ink);}
+  .icon-btn{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:999px;
+    width:34px;height:34px;
+    font-size:15px;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn.on{border-color:var(--accent); color:var(--accent);}
+
+  /* ---------- CARDS ---------- */
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    color:var(--text);
+    border-radius:16px;
+    padding:16px;
+    margin-top:14px;
+    box-shadow:var(--shadow);
+  }
+  .card h2{
+    font-size:16px;
+    font-weight:600;
+    letter-spacing:.2px;
+    margin:0 0 10px;
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2 .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+  .name-row{display:flex; gap:8px; flex-wrap:wrap;}
+  input[type=text]{
+    flex:1;
+    min-width:160px;
+    font-family:'Inter',sans-serif;
+    font-size:14.5px;
+    padding:11px 13px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:var(--surface-2);
+    color:var(--text);
+  }
+  input[type=text]:focus{outline:none; border-color:var(--accent);}
+  input[type=text]::placeholder{color:var(--text-dim);}
+  .hint{font-size:12px; color:var(--text-dim); margin-top:8px; line-height:1.5;}
+
+  /* ---------- MATCH CARD ---------- */
+  .match-card{
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px;
+    margin-top:12px;
+  }
+  .match-top{display:flex; align-items:center; justify-content:space-between; gap:6px;}
+  .team{display:flex; flex-direction:column; align-items:center; flex:1; min-width:0;}
+  .team .flag{font-size:28px; line-height:1;}
+  .team .name{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:14.5px;
+    text-align:center;
+    margin-top:5px;
+    color:var(--text);
+  }
+  .vs-box{
+    font-family:'JetBrains Mono',monospace;
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-weight:700;
+    font-size:11px;
+    padding:5px 9px;
+    border-radius:7px;
+    letter-spacing:.5px;
+    flex-shrink:0;
+  }
+  .match-meta{
+    font-size:11px;
+    color:var(--text-dim);
+    text-align:center;
+    margin-top:10px;
+  }
+  .result-tag{
+    display:inline-block;
+    margin-top:6px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    font-weight:700;
+    padding:3px 8px;
+    border-radius:6px;
+    background:var(--success-bg);
+    color:var(--success);
+  }
+  .result-tag.pending{background:var(--surface); color:var(--text-dim);}
+
+  .tabs{
+    display:flex;
+    gap:5px;
+    margin-top:12px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:3px;
+  }
+  .tab-btn{
+    flex:1;
+    text-align:center;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    padding:8px 4px;
+    border-radius:8px;
+    border:none;
+    background:transparent;
+    color:var(--text-dim);
+    cursor:pointer;
+  }
+  .tab-btn.active{background:var(--accent); color:var(--accent-ink);}
+
+  .winner-row{display:flex; gap:6px; margin-top:10px;}
+  .win-btn{
+    flex:1;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    padding:10px 4px;
+    border-radius:9px;
+    border:1.5px solid var(--border);
+    background:var(--surface);
+    color:var(--text);
+    cursor:pointer;
+    text-align:center;
+  }
+  .win-btn.sel{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);}
+
+  .score-row{display:flex; align-items:center; justify-content:center; gap:10px; margin-top:10px;}
+  .score-input{
+    width:54px;
+    text-align:center;
+    font-family:'JetBrains Mono',monospace;
+    font-size:20px;
+    font-weight:800;
+    padding:8px 0;
+    border-radius:8px;
+    border:1.5px solid var(--border);
+    background:var(--bg);
+    color:var(--accent-2);
+  }
+  .score-input:focus{outline:none; border-color:var(--accent);}
+  .score-sep{font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:800; color:var(--text-dim);}
+
+  /* ---------- BUTTONS ---------- */
+  .btn-primary{
+    width:100%;
+    margin-top:16px;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:15.5px;
+    font-weight:700;
+    letter-spacing:.2px;
+    padding:13px;
+    border-radius:12px;
+    background:var(--accent);
+    color:var(--accent-ink);
+    border:none;
+    cursor:pointer;
+    transition:opacity .15s ease, transform .1s ease;
+  }
+  .btn-primary:hover:not(:disabled){opacity:.92;}
+  .btn-primary:active:not(:disabled){transform:scale(.99);}
+  .btn-primary:disabled{background:var(--surface-2); color:var(--text-dim); cursor:not-allowed; border:1px solid var(--border);}
+  .btn-secondary{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:12.5px;
+    padding:8px 13px;
+    border-radius:9px;
+    border:1.5px solid var(--border);
+    background:transparent;
+    color:var(--text);
+    cursor:pointer;
+  }
+  .btn-secondary:hover{border-color:var(--accent); color:var(--accent);}
+  .msg{margin-top:10px; font-size:13px; font-weight:600; padding:9px 12px; border-radius:9px;}
+  .msg.ok{background:var(--success-bg); color:var(--success);}
+  .msg.err{background:var(--danger-bg); color:var(--danger);}
+
+  /* ---------- LEADERBOARD ---------- */
+  .board-panel{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:16px;
+    margin-top:16px;
+    box-shadow:var(--shadow);
+  }
+  .board-panel h2{
+    font-size:17px;
+    font-weight:700;
+    margin:0 0 3px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .board-sub{font-size:11.5px; color:var(--text-dim); margin-bottom:10px;}
+  table.board{width:100%; border-collapse:collapse; font-family:'JetBrains Mono',monospace;}
+  table.board th{
+    text-align:left;
+    font-size:10px;
+    letter-spacing:.8px;
+    color:var(--text-dim);
+    padding:4px 6px;
+    border-bottom:1px solid var(--border);
+    text-transform:uppercase;
+  }
+  table.board td{padding:9px 6px; font-size:13px; border-bottom:1px solid var(--border); color:var(--text);}
+  table.board tr:first-child td{color:var(--gold); font-weight:800;}
+  .rank-cell{font-weight:800; width:24px;}
+  .pts-cell{color:var(--accent-2); font-weight:800; text-align:right;}
+  .empty-row td{color:var(--text-dim); font-style:italic; text-align:center; padding:16px 0;}
+  .refresh-row{display:flex; justify-content:flex-end; margin-top:8px;}
+
+  /* ---------- ADMIN ---------- */
+  .admin-panel{
+    background:var(--surface);
+    border:1.5px dashed var(--accent-2);
+    border-radius:16px;
+    padding:14px;
+    margin-top:14px;
+  }
+  .admin-panel h2{color:var(--text);}
+  .admin-panel h2 .dot{background:var(--accent-2);}
+  .admin-match{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:9px 0;
+    border-bottom:1px solid var(--border);
+    font-size:12.5px;
+    flex-wrap:wrap;
+  }
+  .admin-match .lbl{flex:1; font-weight:600; min-width:130px; color:var(--text);}
+  .admin-score{
+    width:44px;
+    text-align:center;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    padding:6px 0;
+    border-radius:6px;
+    border:1.5px solid var(--border);
+    background:var(--surface-2);
+    color:var(--text);
+  }
+  footer{
+    text-align:center;
+    font-size:11px;
+    color:var(--text-dim);
+    margin-top:26px;
+    letter-spacing:.3px;
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ============================================================
+   QUINIELA MUNDIAL 2026 — single-file app, shared storage
+   ============================================================ */
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+  es:{
+    title:"Quiniela Mundial 2026",
+    subtitle:"Pronostica y sube a la cima de la tabla",
+    yourName:"Tu nombre",
+    namePlaceholder:"Escribe tu nombre...",
+    nameHint:"Tu nombre identifica tus pronósticos en la tabla de posiciones (visible para todos).",
+    matches:"Partidos",
+    winnerTab:"Ganador",
+    scoreTab:"Marcador exacto",
+    teamAWin:t=>`Gana ${t}`,
+    draw:"Empate",
+    result:"Resultado",
+    pending:"Pendiente",
+    submit:"Enviar mis pronósticos",
+    submitting:"Enviando...",
+    okSaved:"¡Pronósticos guardados! Ya apareces en la tabla.",
+    errName:"Escribe tu nombre antes de enviar.",
+    errIncomplete:"Elige un ganador o un marcador para todos los partidos.",
+    errStorage:"No se pudo guardar. Intenta de nuevo.",
+    leaderboard:"Tabla de posiciones",
+    leaderboardSub:"3 pts ganador correcto · 5 pts marcador exacto",
+    refresh:"Actualizar",
+    rank:"#",
+    player:"Jugador",
+    pts:"Pts",
+    exact:"🎯",
+    hits:"✅",
+    noPlayers:"Nadie ha enviado pronósticos todavía. ¡Sé el primero!",
+    admin:"Admin",
+    adminTitle:"Panel del anfitrión",
+    adminHint:"Ingresa el marcador final de cada partido para calcular la tabla. Sin contraseña — cualquiera con este enlace puede editar, así que compártelo solo con el grupo.",
+    goalsA:"Goles A",
+    goalsB:"Goles B",
+    saveResults:"Guardar resultados y recalcular",
+    clearResults:"Borrar resultado",
+    resultsSaved:"Resultados guardados. Tabla actualizada.",
+    loadingBoard:"Cargando tabla...",
+    vs:"VS"
+  },
+  en:{
+    title:"World Cup 2026 Pool",
+    subtitle:"Predict the matches and climb the leaderboard",
+    yourName:"Your name",
+    namePlaceholder:"Type your name...",
+    nameHint:"Your name identifies your picks on the leaderboard (visible to everyone).",
+    matches:"Matches",
+    winnerTab:"Winner",
+    scoreTab:"Exact score",
+    teamAWin:t=>`${t} wins`,
+    draw:"Draw",
+    result:"Result",
+    pending:"Pending",
+    submit:"Submit my picks",
+    submitting:"Submitting...",
+    okSaved:"Picks saved! You're now on the leaderboard.",
+    errName:"Enter your name before submitting.",
+    errIncomplete:"Pick a winner or an exact score for every match.",
+    errStorage:"Couldn't save. Please try again.",
+    leaderboard:"Leaderboard",
+    leaderboardSub:"3 pts correct winner · 5 pts exact score",
+    refresh:"Refresh",
+    rank:"#",
+    player:"Player",
+    pts:"Pts",
+    exact:"🎯",
+    hits:"✅",
+    noPlayers:"No one has submitted picks yet. Be the first!",
+    admin:"Admin",
+    adminTitle:"Host panel",
+    adminHint:"Enter the final score for each match to calculate the leaderboard. No password — anyone with this link can edit, so only share it with your group.",
+    goalsA:"Goals A",
+    goalsB:"Goals B",
+    saveResults:"Save results & recalculate",
+    clearResults:"Clear result",
+    resultsSaved:"Results saved. Leaderboard updated.",
+    loadingBoard:"Loading leaderboard...",
+    vs:"VS"
+  }
+};
+
+/* ---------------- static match data ---------------- */
+const MATCHES = [
+  {id:"m1", a:"México",    b:"Sudáfrica", fa:"🇲🇽", fb:"🇿🇦", meta:"Grupo A · Estadio Azteca"},
+  {id:"m2", a:"USA",       b:"Paraguay",  fa:"🇺🇸", fb:"🇵🇾", meta:"Grupo D · MetLife Stadium"},
+  {id:"m3", a:"Argentina", b:"Croacia",   fa:"🇦🇷", fb:"🇭🇷", meta:"Grupo F · Estadio BC Place"},
+  {id:"m4", a:"Brasil",    b:"Alemania",  fa:"🇧🇷", fb:"🇩🇪", meta:"Grupo C · AT&T Stadium"}
+];
+
+/* ---------------- state ---------------- */
+let lang = "es";
+let theme = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
+let playerName = "";
+let picks = {};
+let results = {};
+let leaderboard = [];
+let adminOpen = false;
+let submitMsg = null;
+let adminMsg = null;
+let isSubmitting = false;
+let boardLoading = true;
+
+MATCHES.forEach(m => picks[m.id] = {mode:"winner", winner:null, sa:"", sb:""});
+
+function t(key, ...args){
+  const v = I18N[lang][key];
+  return typeof v === "function" ? v(...args) : v;
+}
+
+/* ---------------- storage helpers ---------------- */
+function slugify(name){
+  return "pred_" + name.trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80) || "pred_anon";
+}
+async function storageGet(key, shared){
+  try{ const res = await window.storage.get(key, shared); return res ? res.value : null; }
+  catch(e){ return null; }
+}
+async function storageSet(key, value, shared){
+  try{ return await window.storage.set(key, value, shared); }
+  catch(e){ return null; }
+}
+async function storageList(prefix, shared){
+  try{ const res = await window.storage.list(prefix, shared); return res ? res.keys : []; }
+  catch(e){ return []; }
+}
+
+/* ---------------- scoring ---------------- */
+function winnerOf(sa, sb){
+  if(sa > sb) return "A";
+  if(sb > sa) return "B";
+  return "D";
+}
+function scoreForPick(pick, result){
+  if(!result) return {pts:0, exact:false, hitWinner:false, pending:true};
+  const sa = result.sa, sb = result.sb;
+  const actualWinner = winnerOf(sa, sb);
+  let predictedWinner, isExact = false;
+  if(pick.mode === "score"){
+    const pa = Number(pick.sa), pb = Number(pick.sb);
+    predictedWinner = winnerOf(pa, pb);
+    isExact = pa === sa && pb === sb;
+  } else {
+    predictedWinner = pick.winner;
+  }
+  if(isExact) return {pts:5, exact:true, hitWinner:true, pending:false};
+  if(predictedWinner === actualWinner) return {pts:3, exact:false, hitWinner:true, pending:false};
+  return {pts:0, exact:false, hitWinner:false, pending:false};
+}
+
+/* ---------------- load / recompute leaderboard ---------------- */
+async function loadResults(){
+  const raw = await storageGet("results", true);
+  results = raw ? JSON.parse(raw) : {};
+}
+async function loadLeaderboard(){
+  boardLoading = true;
+  render();
+  const keys = await storageList("pred_", true);
+  const rows = [];
+  for(const key of keys){
+    const raw = await storageGet(key, true);
+    if(!raw) continue;
+    let data;
+    try{ data = JSON.parse(raw); }catch(e){ continue; }
+    let pts = 0, exact = 0, hits = 0;
+    for(const m of MATCHES){
+      const pick = data.picks && data.picks[m.id];
+      if(!pick) continue;
+      const res = results[m.id];
+      const s = scoreForPick(pick, res);
+      pts += s.pts;
+      if(s.exact) exact++;
+      if(s.hitWinner) hits++;
+    }
+    rows.push({name:data.name || "?", pts, exact, hits});
+  }
+  rows.sort((x,y) => y.pts - x.pts || y.exact - x.exact || x.name.localeCompare(y.name));
+  leaderboard = rows;
+  boardLoading = false;
+  render();
+}
+
+/* ---------------- actions ---------------- */
+function setLang(l){ lang = l; render(); }
+function setTheme(th){ theme = th; render(); }
+function selectTab(matchId, mode){ picks[matchId].mode = mode; render(); }
+function selectWinner(matchId, w){ picks[matchId].mode = "winner"; picks[matchId].winner = w; render(); }
+function setScore(matchId, side, val){
+  val = val.replace(/[^0-9]/g,"").slice(0,2);
+  picks[matchId].mode = "score";
+  picks[matchId][side] = val;
+  render();
+}
+function allPicksComplete(){
+  return MATCHES.every(m => {
+    const p = picks[m.id];
+    if(p.mode === "winner") return !!p.winner;
+    return p.sa !== "" && p.sb !== "";
+  });
+}
+async function submitPicks(){
+  submitMsg = null;
+  if(!playerName.trim()){ submitMsg = {type:"err", text:t("errName")}; render(); return; }
+  if(!allPicksComplete()){ submitMsg = {type:"err", text:t("errIncomplete")}; render(); return; }
+  isSubmitting = true;
+  render();
+  const key = slugify(playerName);
+  const payload = JSON.stringify({name: playerName.trim(), picks, submittedAt: Date.now()});
+  const ok = await storageSet(key, payload, true);
+  isSubmitting = false;
+  if(ok){
+    submitMsg = {type:"ok", text:t("okSaved")};
+    await loadLeaderboard();
+  } else {
+    submitMsg = {type:"err", text:t("errStorage")};
+  }
+  render();
+}
+function toggleAdmin(){ adminOpen = !adminOpen; adminMsg = null; render(); }
+function setAdminScore(matchId, side, val){
+  val = val.replace(/[^0-9]/g,"").slice(0,2);
+  if(!window.__adminDraft) window.__adminDraft = {};
+  if(!window.__adminDraft[matchId]) window.__adminDraft[matchId] = {};
+  window.__adminDraft[matchId][side] = val;
+}
+async function saveAllResults(){
+  const draft = window.__adminDraft || {};
+  const newResults = {...results};
+  for(const m of MATCHES){
+    const d = draft[m.id];
+    const existing = results[m.id];
+    const sa = d && d.sa !== undefined ? d.sa : (existing ? existing.sa : "");
+    const sb = d && d.sb !== undefined ? d.sb : (existing ? existing.sb : "");
+    if(sa !== "" && sb !== "" && sa !== undefined && sb !== undefined){
+      newResults[m.id] = {sa: Number(sa), sb: Number(sb)};
+    }
+  }
+  results = newResults;
+  const ok = await storageSet("results", JSON.stringify(results), true);
+  if(ok){
+    adminMsg = {type:"ok", text: t("resultsSaved")};
+    await loadLeaderboard();
+  } else {
+    adminMsg = {type:"err", text: t("errStorage")};
+  }
+  render();
+}
+async function clearResult(matchId){
+  const newResults = {...results};
+  delete newResults[matchId];
+  results = newResults;
+  await storageSet("results", JSON.stringify(results), true);
+  await loadLeaderboard();
+}
+
+/* ---------------- render helpers ---------------- */
+function escapeHTML(s){
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function logoSVG(){
+  return `
+  <svg width="38" height="38" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="logoGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="var(--accent)"/>
+        <stop offset="1" stop-color="var(--accent-2)"/>
+      </linearGradient>
+    </defs>
+    <circle cx="20" cy="20" r="19" fill="url(#logoGrad)"/>
+    <g stroke="#ffffff" stroke-width="1.3" fill="none" opacity="0.92" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="20,11.5 24.2,14.6 22.6,19.6 17.4,19.6 15.8,14.6" fill="#ffffff" opacity="0.18"/>
+      <path d="M20 11.5 L20 4"/>
+      <path d="M24.2 14.6 L30.8 11.2"/>
+      <path d="M22.6 19.6 L28 25.6"/>
+      <path d="M17.4 19.6 L12 25.6"/>
+      <path d="M15.8 14.6 L9.2 11.2"/>
+    </g>
+    <text x="20" y="32.5" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="7.5" font-weight="800" fill="#ffffff">26</text>
+  </svg>`;
+}
+
+function matchCardHTML(m){
+  const p = picks[m.id];
+  const res = results[m.id];
+  const resultTag = res
+    ? `<div class="result-tag">${t("result")}: ${res.sa} - ${res.sb}</div>`
+    : `<div class="result-tag pending">${t("pending")}</div>`;
+
+  const winnerRow = `
+    <div class="winner-row">
+      <button class="win-btn ${p.winner==='A'?'sel':''}" data-action="winner" data-match="${m.id}" data-w="A">${m.fa} ${t("teamAWin")(m.a)}</button>
+      <button class="win-btn ${p.winner==='D'?'sel':''}" data-action="winner" data-match="${m.id}" data-w="D">${t("draw")}</button>
+      <button class="win-btn ${p.winner==='B'?'sel':''}" data-action="winner" data-match="${m.id}" data-w="B">${m.fb} ${t("teamAWin")(m.b)}</button>
+    </div>`;
+
+  const scoreRow = `
+    <div class="score-row">
+      <input class="score-input" inputmode="numeric" maxlength="2" data-action="score" data-match="${m.id}" data-side="sa" value="${p.sa}">
+      <span class="score-sep">-</span>
+      <input class="score-input" inputmode="numeric" maxlength="2" data-action="score" data-match="${m.id}" data-side="sb" value="${p.sb}">
+    </div>`;
+
+  return `
+  <div class="match-card">
+    <div class="match-top">
+      <div class="team"><div class="flag">${m.fa}</div><div class="name">${m.a}</div></div>
+      <div class="vs-box">${t("vs")}</div>
+      <div class="team"><div class="flag">${m.fb}</div><div class="name">${m.b}</div></div>
+    </div>
+    <div class="match-meta">${m.meta}<br>${resultTag}</div>
+    <div class="tabs">
+      <button class="tab-btn ${p.mode==='winner'?'active':''}" data-action="tab" data-match="${m.id}" data-mode="winner">${t("winnerTab")}</button>
+      <button class="tab-btn ${p.mode==='score'?'active':''}" data-action="tab" data-match="${m.id}" data-mode="score">${t("scoreTab")}</button>
+    </div>
+    ${p.mode === "winner" ? winnerRow : scoreRow}
+  </div>`;
+}
+
+function leaderboardRowsHTML(){
+  if(boardLoading) return `<tr class="empty-row"><td colspan="5">${t("loadingBoard")}</td></tr>`;
+  if(leaderboard.length === 0) return `<tr class="empty-row"><td colspan="5">${t("noPlayers")}</td></tr>`;
+  const medals = ["🥇","🥈","🥉"];
+  return leaderboard.map((row,i) => `
+    <tr>
+      <td class="rank-cell">${medals[i] || (i+1)}</td>
+      <td>${escapeHTML(row.name)}</td>
+      <td class="pts-cell">${row.pts}</td>
+      <td>${row.exact}</td>
+      <td>${row.hits}</td>
+    </tr>`).join("");
+}
+
+function adminPanelHTML(){
+  if(!adminOpen) return "";
+  const rows = MATCHES.map(m => {
+    const res = results[m.id] || {};
+    return `
+    <div class="admin-match">
+      <div class="lbl">${m.fa} ${m.a} vs ${m.b} ${m.fb}</div>
+      <input class="admin-score" inputmode="numeric" maxlength="2" placeholder="${t('goalsA')}" data-action="admin-score" data-match="${m.id}" data-side="sa" value="${res.sa ?? ''}">
+      <span>-</span>
+      <input class="admin-score" inputmode="numeric" maxlength="2" placeholder="${t('goalsB')}" data-action="admin-score" data-match="${m.id}" data-side="sb" value="${res.sb ?? ''}">
+      <button class="btn-secondary" data-action="clear-result" data-match="${m.id}" style="font-size:11px; padding:6px 8px;">✕</button>
+    </div>`;
+  }).join("");
+  return `
+  <div class="admin-panel">
+    <h2><span class="dot"></span>${t("adminTitle")}</h2>
+    <p class="hint">${t("adminHint")}</p>
+    ${rows}
+    <button class="btn-primary" data-action="save-results" style="margin-top:14px;">${t("saveResults")}</button>
+    ${adminMsg ? `<div class="msg ${adminMsg.type}">${adminMsg.text}</div>` : ""}
+  </div>`;
+}
+
+function captureFocus(){
+  const active = document.activeElement;
+  if(!active || active.tagName !== "INPUT") return null;
+  return {
+    id: active.id || null,
+    action: active.dataset ? active.dataset.action : null,
+    match: active.dataset ? active.dataset.match : null,
+    side: active.dataset ? active.dataset.side : null,
+    selStart: active.selectionStart,
+    selEnd: active.selectionEnd
+  };
+}
+function restoreFocus(app, info){
+  if(!info) return;
+  let el = null;
+  if(info.id){ el = document.getElementById(info.id); }
+  else if(info.action){ el = app.querySelector(`[data-action="${info.action}"][data-match="${info.match}"][data-side="${info.side}"]`); }
+  if(el){ el.focus(); try{ el.setSelectionRange(info.selStart, info.selEnd); }catch(e){} }
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  document.documentElement.setAttribute("data-theme", theme);
+  const app = document.getElementById("app");
+  const focusInfo = captureFocus();
+  app.innerHTML = `
+    <header class="top">
+      <div class="brand">
+        ${logoSVG()}
         <div>
-            <h1 class="text-3xl sm:text-4xl font-extrabold uppercase tracking-wider font-scoreboard text-yellow-400 drop-shadow-md">
-                <span data-lang="es">QUINIELA 2026</span>
-                <span data-lang="en" class="hidden">2026 PREDICTOR</span>
-            </h1>
-            <p class="text-green-300 text-sm">
-                <span data-lang="es">¡Pronostica, comparte y compite en tiempo real!</span>
-                <span data-lang="en" class="hidden">Predict, share, and compete in real-time!</span>
-            </p>
+          <h1>${t("title")}</h1>
+          <small>${t("subtitle")}</small>
         </div>
-        <div class="flex gap-2">
-            <button onclick="toggleLang()" class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-1 px-3 rounded text-sm transition">
-                🌐 <span id="lang-btn-text">EN</span>
-            </button>
-            <button onclick="toggleAdmin()" class="bg-zinc-700 hover:bg-zinc-600 text-white font-bold py-1 px-3 rounded text-sm transition">
-                ⚙️ Admin
-            </button>
+      </div>
+      <div class="top-actions">
+        <div class="seg">
+          <button class="${lang==='es'?'active':''}" data-action="lang" data-lang="es">ES</button>
+          <button class="${lang==='en'?'active':''}" data-action="lang" data-lang="en">EN</button>
         </div>
+        <button class="icon-btn" data-action="theme" title="Tema">${theme==='dark' ? '🌙' : '☀️'}</button>
+        <button class="icon-btn ${adminOpen?'on':''}" data-action="toggle-admin" title="${t('admin')}">⚙️</button>
+      </div>
     </header>
 
-    <main class="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <div class="lg:col-span-2 space-y-6">
-            
-            <section id="admin-panel" class="hidden bg-zinc-900 border-2 border-red-500 rounded-xl p-4 shadow-xl">
-                <h2 class="text-xl font-bold text-red-400 mb-3 uppercase font-scoreboard">
-                    Control de Admin (Resultados Reales)
-                </h2>
-                <div id="admin-matches" class="space-y-4">
-                    </div>
-                <button onclick="saveRealResults()" class="mt-4 w-full bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded transition uppercase tracking-wider">
-                    <span data-lang="es">Guardar Resultados Oficiales</span>
-                    <span data-lang="en" class="hidden">Save Official Results</span>
-                </button>
-            </section>
+    <div class="card">
+      <h2><span class="dot"></span>${t("yourName")}</h2>
+      <div class="name-row">
+        <input type="text" id="nameInput" placeholder="${t('namePlaceholder')}" value="${escapeHTML(playerName)}">
+      </div>
+      <div class="hint">${t("nameHint")}</div>
+    </div>
 
-            <section class="pitch-bg border-4 border-white rounded-2xl p-4 sm:p-6 shadow-2xl relative overflow-hidden">
-                <div class="absolute inset-0 border-2 border-dashed border-white/20 pointer-events-none m-4"></div>
-                
-                <div class="relative z-10">
-                    <h2 class="text-2xl font-black mb-4 uppercase tracking-wide font-scoreboard text-center bg-black/40 py-2 rounded">
-                        <span data-lang="es">TUS PRONÓSTICOS</span>
-                        <span data-lang="en" class="hidden">YOUR PREDICTIONS</span>
-                    </h2>
+    <div class="card">
+      <h2><span class="dot"></span>${t("matches")}</h2>
+      ${MATCHES.map(matchCardHTML).join("")}
+      <button class="btn-primary" data-action="submit" ${isSubmitting ? "disabled" : ""}>
+        ${isSubmitting ? t("submitting") : t("submit")}
+      </button>
+      ${submitMsg ? `<div class="msg ${submitMsg.type}">${submitMsg.text}</div>` : ""}
+    </div>
 
-                    <div class="mb-6 bg-black/50 p-4 rounded-xl border border-green-500">
-                        <label class="block text-sm font-bold text-yellow-400 mb-2 uppercase">
-                            <span data-lang="es">Tu Nombre / Apodo:</span>
-                            <span data-lang="en" class="hidden">Your Name / Nickname:</span>
-                        </label>
-                        <input type="text" id="player-name" class="w-full bg-zinc-800 text-white border-2 border-green-400 rounded p-2 text-lg font-bold focus:outline-none focus:border-yellow-400" placeholder="Ej. Carlos_10">
-                    </div>
+    ${adminPanelHTML()}
 
-                    <div id="matches-container" class="space-y-4">
-                        </div>
+    <div class="board-panel">
+      <h2>🏆 ${t("leaderboard")}</h2>
+      <div class="board-sub">${t("leaderboardSub")}</div>
+      <table class="board">
+        <thead><tr>
+          <th>${t("rank")}</th><th>${t("player")}</th><th style="text-align:right;">${t("pts")}</th><th>${t("exact")}</th><th>${t("hits")}</th>
+        </tr></thead>
+        <tbody>${leaderboardRowsHTML()}</tbody>
+      </table>
+      <div class="refresh-row">
+        <button class="btn-secondary" data-action="refresh">↻ ${t("refresh")}</button>
+      </div>
+    </div>
 
-                    <button onclick="submitPredictions()" class="mt-6 w-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-xl py-4 px-6 rounded-xl shadow-lg transform active:scale-95 transition uppercase tracking-wider font-scoreboard">
-                        <span data-lang="es">⚽ ENVIAR PRONÓSTICOS ⚽</span>
-                        <span data-lang="en" class="hidden">⚽ SUBMIT PREDICTIONS ⚽</span>
-                    </button>
-                </div>
-            </section>
-        </div>
+    <footer>MUNDIAL 2026 · ${t("subtitle")}</footer>
+  `;
+  attachHandlers();
+  restoreFocus(app, focusInfo);
+}
 
-        <div class="lg:col-span-1">
-            <section class="bg-black/40 backdrop-blur-md border-2 border-yellow-500 rounded-2xl p-4 shadow-xl">
-                <h2 class="text-2xl font-black mb-4 uppercase tracking-wide font-scoreboard text-center text-yellow-400">
-                    <span data-lang="es">TABLA EN VIVO</span>
-                    <span data-lang="en" class="hidden">LIVE LEAGUE TABLE</span>
-                </h2>
-                
-                <div class="text-xs bg-zinc-800/80 p-2 rounded mb-4 border border-zinc-700 flex justify-around">
-                    <span>🟢 <b>M. Exacto:</b> 5pts</span>
-                    <span>🟡 <b>Ganador:</b> 3pts</span>
-                </div>
+/* ---------------- event wiring ---------------- */
+function attachHandlers(){
+  const app = document.getElementById("app");
+  const nameInput = document.getElementById("nameInput");
+  if(nameInput){
+    nameInput.addEventListener("input", (e) => { playerName = e.target.value; });
+    nameInput.addEventListener("keydown", (e) => { e.stopPropagation(); });
+  }
+  app.querySelectorAll("[data-action]").forEach(el => {
+    const action = el.dataset.action;
+    if(action === "lang") el.addEventListener("click", () => setLang(el.dataset.lang));
+    else if(action === "theme") el.addEventListener("click", () => setTheme(theme === "dark" ? "light" : "dark"));
+    else if(action === "tab") el.addEventListener("click", () => selectTab(el.dataset.match, el.dataset.mode));
+    else if(action === "winner") el.addEventListener("click", () => selectWinner(el.dataset.match, el.dataset.w));
+    else if(action === "score") el.addEventListener("input", () => setScore(el.dataset.match, el.dataset.side, el.value));
+    else if(action === "submit") el.addEventListener("click", submitPicks);
+    else if(action === "toggle-admin") el.addEventListener("click", toggleAdmin);
+    else if(action === "admin-score") el.addEventListener("input", () => setAdminScore(el.dataset.match, el.dataset.side, el.value));
+    else if(action === "save-results") el.addEventListener("click", saveAllResults);
+    else if(action === "clear-result") el.addEventListener("click", () => clearResult(el.dataset.match));
+    else if(action === "refresh") el.addEventListener("click", loadLeaderboard);
+  });
+}
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b-2 border-zinc-700 text-yellow-400 text-sm uppercase font-scoreboard">
-                                <th class="py-2 px-1 text-center">Pos</th>
-                                <th class="py-2 px-2"><span data-lang="es">Jugador</span><span data-lang="en" class="hidden">Player</span></th>
-                                <th class="py-2 px-1 text-center">Pts</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboard-body" class="divide-y divide-zinc-800 font-medium">
-                            </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-    </main>
-
-    <div id="toast" class="fixed bottom-5 right-5 bg-yellow-400 text-black font-bold px-6 py-3 rounded-xl shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none z-50"></div>
-
-    <script>
-        // CONFIGURACIÓN INICIAL DE PARTIDOS (Fácilmente ampliable)
-        const DEFAULT_MATCHES = [
-            { id: 1, home: "México 🇲🇽", away: "Sudáfrica 🇿🇦" },
-            { id: 2, home: "USA 🇺🇸", away: "Paraguay 🇵🇾" },
-            { id: 3, home: "Guatemala 🇬🇹", away: "Australia 🇦🇺" },
-            { id: 4, home: "Argentina 🇦🇷", away: "Argelia 🇩🇿" }
-        ];
-
-        let currentLang = 'es';
-        let state = {
-            predictions: {}, // { playerName: { matchId: { type: 'exact'|'winner', homeScore, awayScore, winnerChoice } } }
-            results: {}      // { matchId: { homeScore, awayScore, completed: true/false } }
-        };
-
-        // Inicializar almacenamiento compartido en red real-time
-        const storage = (typeof window.storage !== 'undefined') 
-            ? window.storage.shared 
-            : {
-                // Fallback local por si se corre fuera del entorno compatible
-                getItem: (key) => localStorage.getItem(key),
-                setItem: (key, val) => { localStorage.setItem(key, val); if(window.onStorageUpdate) window.onStorageUpdate(); }
-              };
-
-        async function init() {
-            // Cargar datos guardados del almacenamiento compartido
-            try {
-                const savedPredictions = await storage.getItem('quiniela_predictions');
-                const savedResults = await storage.getItem('quiniela_results');
-                
-                if (savedPredictions) state.predictions = JSON.parse(savedPredictions);
-                if (savedResults) state.results = JSON.parse(savedResults);
-            } catch (e) {
-                console.log("Error cargando desde window.storage:", e);
-            }
-
-            renderMatches();
-            renderAdminMatches();
-            calculateLeaderboard();
-        }
-
-        // Cambiar idioma (ES / EN)
-        function toggleLang() {
-            currentLang = currentLang === 'es' ? 'en' : 'es';
-            document.getElementById('lang-btn-text').innerText = currentLang === 'es' ? 'EN' : 'ES';
-            document.querySelectorAll('[data-lang]').forEach(el => {
-                if (el.dataset.lang === currentLang) {
-                    el.classList.remove('hidden');
-                } else {
-                    el.classList.add('hidden');
-                }
-            });
-        }
-
-        // Mostrar / Ocultar panel admin
-        function toggleAdmin() {
-            const panel = document.getElementById('admin-panel');
-            panel.classList.toggle('hidden');
-        }
-
-        // Renderizar partidos en la zona del jugador
-        function renderMatches() {
-            const container = document.getElementById('matches-container');
-            container.innerHTML = '';
-
-            DEFAULT_MATCHES.forEach(match => {
-                const res = state.results[match.id] || { completed: false };
-                const resText = res.completed ? ` (Real: ${res.homeScore} - ${res.awayScore})` : '';
-
-                const html = `
-                    <div class="bg-black/60 rounded-xl p-4 border border-white/20 shadow-inner">
-                        <div class="flex justify-between items-center mb-3 border-b border-zinc-700/50 pb-1">
-                            <span class="text-xs font-bold text-yellow-400 uppercase tracking-widest font-scoreboard">PARTIDO ${match.id} ${resText}</span>
-                        </div>
-                        
-                        <div class="grid grid-cols-3 items-center text-center font-bold text-lg mb-4">
-                            <div class="text-right pr-2">${match.home}</div>
-                            <div class="text-yellow-400 font-scoreboard text-2xl font-black">VS</div>
-                            <div class="text-left pl-2">${match.away}</div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2 mb-3">
-                            <label class="flex items-center justify-center p-2 bg-zinc-800 rounded cursor-pointer border border-transparent has-[:checked]:border-yellow-400">
-                                <input type="radio" name="mode-${match.id}" value="winner" checked class="sr-only" onchange="toggleMatchInputs(${match.id}, 'winner')">
-                                <span class="text-xs uppercase font-bold text-zinc-300">
-                                    <span data-lang="es">Ganador Directo</span><span data-lang="en" class="hidden">Straight Winner</span>
-                                </span>
-                            </label>
-                            <label class="flex items-center justify-center p-2 bg-zinc-800 rounded cursor-pointer border border-transparent has-[:checked]:border-yellow-400">
-                                <input type="radio" name="mode-${match.id}" value="exact" class="sr-only" onchange="toggleMatchInputs(${match.id}, 'exact')">
-                                <span class="text-xs uppercase font-bold text-zinc-300">
-                                    <span data-lang="es">Marcador Exacto</span><span data-lang="en" class="hidden">Exact Score</span>
-                                </span>
-                            </label>
-                        </div>
-
-                        <div id="winner-inputs-${match.id}" class="grid grid-cols-3 gap-2 text-sm font-bold">
-                            <button type="button" onclick="setWinnerChoice(${match.id}, 'home')" id="btn-win-home-${match.id}" class="choice-btn py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-center transition">Local</button>
-                            <button type="button" onclick="setWinnerChoice(${match.id}, 'draw')" id="btn-win-draw-${match.id}" class="choice-btn py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-center transition">Empate</button>
-                            <button type="button" onclick="setWinnerChoice(${match.id}, 'away')" id="btn-win-away-${match.id}" class="choice-btn py-2 bg-zinc-700 hover:bg-zinc-600 rounded text-center transition">Visita</button>
-                            <input type="hidden" id="winner-choice-${match.id}" value="">
-                        </div>
-
-                        <div id="exact-inputs-${match.id}" class="hidden flex justify-center items-center gap-4">
-                            <input type="number" min="0" id="exact-home-${match.id}" class="w-16 bg-zinc-900 border-2 border-zinc-700 rounded p-2 text-center text-xl font-scoreboard text-yellow-400" placeholder="0">
-                            <span class="font-bold text-xl">-</span>
-                            <input type="number" min="0" id="exact-away-${match.id}" class="w-16 bg-zinc-900 border-2 border-zinc-700 rounded p-2 text-center text-xl font-scoreboard text-yellow-400" placeholder="0">
-                        </div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-            // Sincronizar visibilidad de idiomas en los elementos recién creados
-            toggleLang(); toggleLang(); 
-        }
-
-        function toggleMatchInputs(matchId, mode) {
-            if (mode === 'winner') {
-                document.getElementById(`winner-inputs-${matchId}`).classList.remove('hidden');
-                document.getElementById(`exact-inputs-${matchId}`).classList.add('hidden');
-            } else {
-                document.getElementById(`winner-inputs-${matchId}`).classList.add('hidden');
-                document.getElementById(`exact-inputs-${matchId}`).classList.remove('hidden');
-            }
-        }
-
-        function setWinnerChoice(matchId, choice) {
-            // Resetear estilos de botones en este partido
-            document.querySelectorAll(`#winner-inputs-${matchId} .choice-btn`).forEach(btn => {
-                btn.classList.remove('bg-yellow-400', 'text-black', 'bg-zinc-700');
-                btn.classList.add('bg-zinc-700');
-            });
-            // Activar elegido
-            const selectedBtn = document.getElementById(`btn-win-${choice}-${matchId}`);
-            selectedBtn.classList.remove('bg-zinc-700');
-            selectedBtn.classList.add('bg-yellow-400', 'text-black');
-            
-            document.getElementById(`winner-choice-${matchId}`).value = choice;
-        }
-
-        // Enviar pronósticos del usuario al almacenamiento compartido
-        async function submitPredictions() {
-            const nameInput = document.getElementById('player-name').value.trim();
-            if (!nameInput) {
-                showToast(currentLang === 'es' ? "⚠️ Ingresa tu nombre por favor" : "⚠️ Please enter your name");
-                return;
-            }
-
-            let playerPredictions = {};
-
-            for (let match of DEFAULT_MATCHES) {
-                const mode = document.querySelector(`input[name="mode-${match.id}"]:checked`).value;
-                if (mode === 'winner') {
-                    const choice = document.getElementById(`winner-choice-${match.id}`).value;
-                    if (!choice) {
-                        showToast(currentLang === 'es' ? `⚠️ Elige ganador para el partido ${match.id}` : `⚠️ Select a winner for match ${match.id}`);
-                        return;
-                    }
-                    playerPredictions[match.id] = { type: 'winner', choice };
-                } else {
-                    const homeS = document.getElementById(`exact-home-${match.id}`).value;
-                    const awayS = document.getElementById(`exact-away-${match.id}`).value;
-                    if (homeS === '' || awayS === '') {
-                        showToast(currentLang === 'es' ? `⚠️ Pon marcador completo para el partido ${match.id}` : `⚠️ Fill full score for match ${match.id}`);
-                        return;
-                    }
-                    playerPredictions[match.id] = { type: 'exact', homeScore: parseInt(homeS), awayScore: parseInt(awayS) };
-                }
-            }
-
-            state.predictions[nameInput] = playerPredictions;
-            await storage.setItem('quiniela_predictions', JSON.stringify(state.predictions));
-            
-            showToast(currentLang === 'es' ? "🎉 ¡Pronósticos guardados con éxito!" : "🎉 Predictions submitted successfully!");
-            calculateLeaderboard();
-        }
-
-        // Renderizar controles de Admin
-        function renderAdminMatches() {
-            const container = document.getElementById('admin-matches');
-            container.innerHTML = '';
-
-            DEFAULT_MATCHES.forEach(match => {
-                const current = state.results[match.id] || { homeScore: '', awayScore: '', completed: false };
-                const html = `
-                    <div class="flex items-center justify-between bg-zinc-800 p-2 rounded border border-zinc-700 text-sm">
-                        <span class="w-1/3 font-bold">${match.home} vs ${match.away}</span>
-                        <div class="flex items-center gap-2 w-2/3 justify-end">
-                            <input type="number" id="admin-home-${match.id}" value="${current.homeScore}" class="w-12 bg-black p-1 text-center font-bold text-yellow-400" placeholder="L">
-                            <span>-</span>
-                            <input type="number" id="admin-away-${match.id}" value="${current.awayScore}" class="w-12 bg-black p-1 text-center font-bold text-yellow-400" placeholder="V">
-                            <label class="flex items-center gap-1 ml-2 text-xs">
-                                <input type="checkbox" id="admin-check-${match.id}" ${current.completed ? 'checked' : ''}> Jugar / Final
-                            </label>
-                        </div>
-                    </div>
-                `;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-        }
-
-        // Guardar resultados reales (Admin)
-        async function saveRealResults() {
-            DEFAULT_MATCHES.forEach(match => {
-                const homeVal = document.getElementById(`admin-home-${match.id}`).value;
-                const awayVal = document.getElementById(`admin-away-${match.id}`).value;
-                const isChecked = document.getElementById(`admin-check-${match.id}`).checked;
-
-                if (isChecked && homeVal !== '' && awayVal !== '') {
-                    state.results[match.id] = {
-                        homeScore: parseInt(homeVal),
-                        awayScore: parseInt(awayVal),
-                        completed: true
-                    };
-                } else {
-                    state.results[match.id] = { completed: false };
-                }
-            });
-
-            await storage.setItem('quiniela_results', JSON.stringify(state.results));
-            showToast("📈 Resultados oficiales actualizados");
-            renderMatches();
-            calculateLeaderboard();
-        }
-
-        // Calcular tabla de posiciones cruzando pronósticos vs resultados reales
-        function calculateLeaderboard() {
-            let scores = {}; // { playerName: totalPoints }
-
-            // Asegurar que todos los jugadores registrados aparezcan
-            Object.keys(state.predictions).forEach(player => {
-                scores[player] = 0;
-                const pPredictions = state.predictions[player];
-
-                Object.keys(pPredictions).forEach(matchId => {
-                    const real = state.results[matchId];
-                    if (!real || !real.completed) return; // Si no hay resultado real definitivo, no puntúa aún.
-
-                    const pred = pPredictions[matchId];
-                    
-                    // Determinar resultado real real (home, away, o draw)
-                    let realResult = 'draw';
-                    if (real.homeScore > real.awayScore) realResult = 'home';
-                    if (real.homeScore < real.awayScore) realResult = 'away';
-
-                    if (pred.type === 'winner') {
-                        // Acierto de ganador simple = 3 Puntos
-                        if (pred.choice === realResult) {
-                            scores[player] += 3;
-                        }
-                    } else if (pred.type === 'exact') {
-                        // Acierto de marcador exacto = 5 Puntos
-                        if (pred.homeScore === real.homeScore && pred.awayScore === real.awayScore) {
-                            scores[player] += 5;
-                        } 
-                        // Si falló marcador exacto pero acertó el ganador/empate de todas formas = 3 Puntos
-                        else {
-                            let predResult = 'draw';
-                            if (pred.homeScore > pred.awayScore) predResult = 'home';
-                            if (pred.homeScore < pred.awayScore) predResult = 'away';
-                            
-                            if (predResult === realResult) {
-                                scores[player] += 3;
-                            }
-                        }
-                    }
-                });
-            });
-
-            // Convertir a array ordenado de mayor a menor puntaje
-            let sortedList = Object.keys(scores).map(name => {
-                return { name: name, points: scores[name] };
-            }).sort((a, b) => b.points - a.points);
-
-            renderLeaderboard(sortedList);
-        }
-
-        // Renderizar la tabla de posiciones en la UI
-        function renderLeaderboard(list) {
-            const tbody = document.getElementById('leaderboard-body');
-            tbody.innerHTML = '';
-
-            if (list.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="py-4 text-center text-sm text-zinc-400">Sin pronósticos aún</td></tr>`;
-                return;
-            }
-
-            list.forEach((player, index) => {
-                let medal = index + 1;
-                if(index === 0) medal = '🥇';
-                if(index === 1) medal = '🥈';
-                if(index === 2) medal = '🥉';
-
-                const row = `
-                    <tr class="${index === 0 ? 'bg-yellow-400/10 font-bold' : ''} hover:bg-white/5 transition">
-                        <td class="py-3 px-1 text-center font-scoreboard">${medal}</td>
-                        <td class="py-3 px-2 truncate max-w-[120px] text-white">${player.name}</td>
-                        <td class="py-3 px-1 text-center font-scoreboard text-yellow-400">${player.points}</td>
-                    </tr>
-                `;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
-        }
-
-        // Alertas visuales estéticas
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
-        }
-
-        // Escucha cambios remotos si otras instancias actualizan el window.storage compartido
-        if (typeof window.storage !== 'undefined') {
-            window.onStorageUpdate = () => {
-                init();
-            };
-            // Polling de seguridad por si hay actualizaciones concurrentes
-            setInterval(init, 4000);
-        }
-
-        // Lanzamiento inicial
-        init();
-    </script>
+/* ---------------- init ---------------- */
+async function init(){
+  render();
+  await loadResults();
+  await loadLeaderboard();
+  setInterval(async () => { await loadResults(); await loadLeaderboard(); }, 12000);
+}
+init();
+</script>
 </body>
 </html>
