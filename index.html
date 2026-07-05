@@ -2057,9 +2057,7 @@ function renderPredictionsView(){
     </div>`;
 
   // Agrupar partidos por ronda/jornada en secciones colapsables, para no
-  // tener que desplazarse por todo el torneo. Se abre automáticamente la
-  // ronda que todavía tiene partidos pendientes; las que ya terminaron
-  // completas se quedan cerradas por default. El partido ya destacado arriba
+  // tener que desplazarse por todo el torneo. El partido ya destacado arriba
   // no se repite aquí abajo.
   const groups = new Map();
   for(const m of matches){
@@ -2068,14 +2066,28 @@ function renderPredictionsView(){
     groups.get(m.round).push(m);
   }
 
+  // Clasificar cada jornada/fase: "activa" si todavía tiene algún partido sin
+  // terminar (se queda arriba, ordenada por su partido pendiente más próximo),
+  // o "pasada" si ya se jugaron todos (se manda al fondo, la más reciente
+  // primero). Dentro de cada jornada, los partidos pendientes van antes que
+  // los ya jugados, para que lo que falta por pronosticar quede siempre visible.
+  const roundEntries = [...groups.entries()].map(([roundKey, roundMatches]) => {
+    const pending = roundMatches.filter(m => m.status !== 'finished').sort((a,b)=>kickoffDate(a)-kickoffDate(b));
+    const finished = roundMatches.filter(m => m.status === 'finished').sort((a,b)=>kickoffDate(b)-kickoffDate(a));
+    const hasPending = pending.length > 0;
+    const sortKey = hasPending ? kickoffDate(pending[0]).getTime() : (finished.length ? kickoffDate(finished[0]).getTime() : 0);
+    return {roundKey, orderedMatches: [...pending, ...finished], hasPending, doneCount: finished.length, total: roundMatches.length, sortKey};
+  });
+  const activeRounds = roundEntries.filter(r => r.hasPending).sort((a,b) => a.sortKey - b.sortKey);
+  const pastRounds = roundEntries.filter(r => !r.hasPending).sort((a,b) => b.sortKey - a.sortKey);
+  const orderedRounds = [...activeRounds, ...pastRounds];
+
   let cards = '';
-  for(const [roundKey, roundMatches] of groups){
-    const hasPending = roundMatches.some(m => m.status !== 'finished');
-    const roundCards = roundMatches.map(m => renderMatchCard(m)).join('');
-    const doneCount = roundMatches.filter(m=>m.status==='finished').length;
+  for(const {roundKey, orderedMatches, hasPending, doneCount, total} of orderedRounds){
+    const roundCards = orderedMatches.map(m => renderMatchCard(m)).join('');
     cards += `
       <details class="round-details" ${hasPending ? 'open' : ''}>
-        <summary>${roundLabel(roundKey)} <span class="small-note">(${doneCount}/${roundMatches.length} ${LANG==='es'?'jugados':'played'})</span></summary>
+        <summary>${roundLabel(roundKey)} <span class="small-note">(${doneCount}/${total} ${LANG==='es'?'jugados':'played'})</span></summary>
         <div class="matches-grid">${roundCards}</div>
       </details>
     `;
