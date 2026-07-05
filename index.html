@@ -699,7 +699,7 @@ const STR = {
     import_preds_desc:"¿Ya recolectaron los pronósticos de Dieciseisavos (o cualquier ronda) a mano, por WhatsApp, o en papel? Cárgalos aquí de una vez para que la tabla de posiciones los refleje. Si un jugador no existe todavía, se crea automáticamente como participante nuevo.",
     import_preds_template_btn:"Descargar plantilla de este torneo",
     import_preds_upload_btn:"Cargar pronósticos (CSV)",
-    import_preds_hint:"Columnas: player,match_id,home,away,round,reg_home,reg_away,et_home,et_away,pen_home,pen_away. Descarga la plantilla para tener el \"match_id\" correcto de cada partido — solo tienes que llenar la columna \"player\" y los marcadores, una fila por cada jugador y partido.",
+    import_preds_hint:"Columnas: player,email,match_id,round,home,away,reg_home,reg_away,et_home,et_away,pen_home,pen_away. El correo es lo que identifica al jugador de verdad: si ya existe alguien con ese correo, los puntos se le suman a su cuenta real; si es nuevo, se crea su cuenta de una vez (podrá entrar después con ese mismo correo). La columna \"round\" es solo un seguro — si no coincide con la jornada/fase real del partido (según su \"match_id\"), se avisa pero se usa la real. Descarga la plantilla para tener el \"match_id\" correcto de cada partido.",
     delete_match_btn:"Eliminar este partido",
     confirm_delete_match:"¿Eliminar este partido? Se borrarán también los pronósticos guardados sobre él.",
     round_8:"Octavos de Final",
@@ -716,6 +716,10 @@ const STR = {
     avatar_invalid_type:"Elige un archivo de imagen (PNG, JPG o WEBP).",
     avatar_saved:"✓ Foto de perfil actualizada",
     avatar_removed:"Foto de perfil eliminada",
+    logout_title:"Cerrar sesión en este dispositivo",
+    logout_desc:"Esto no borra nada — solo olvida quién eres TÚ en este navegador. La próxima vez solo te pedirá tu correo: si ya existe, te reconoce y entra directo; si es nuevo (por ejemplo el de otro competidor), te pedirá su nombre. Útil para registrar a varias personas desde el mismo dispositivo.",
+    logout_btn:"Cerrar sesión",
+    logout_confirm:"¿Cerrar sesión en este dispositivo? Tus pronósticos y tu perfil siguen guardados — solo tendrás que volver a entrar con tu correo la próxima vez.",
     next_change_available:"Podrás cambiarlo de nuevo el:",
     save_profile:"Guardar cambios",
     profile_saved:"Perfil actualizado",
@@ -1016,7 +1020,7 @@ const STR = {
     import_preds_desc:"Already collected everyone's Round of 16 (or any round) picks by hand, WhatsApp, or on paper? Load them here at once so the standings reflect them. If a player doesn't exist yet, they're created automatically as a new participant.",
     import_preds_template_btn:"Download this tournament's template",
     import_preds_upload_btn:"Upload predictions (CSV)",
-    import_preds_hint:"Columns: player,match_id,home,away,round,reg_home,reg_away,et_home,et_away,pen_home,pen_away. Download the template to get the right \"match_id\" for each match — just fill in the \"player\" column and the scores, one row per player and match.",
+    import_preds_hint:"Columns: player,email,match_id,round,home,away,reg_home,reg_away,et_home,et_away,pen_home,pen_away. Email is what actually identifies the player: if that email already exists, points are added to their real account; if it's new, their account is created right away (they can log in later with that same email). The \"round\" column is just a safety check — if it doesn't match the match's real round (per its \"match_id\"), you'll be warned but the real one is used. Download the template to get the right \"match_id\" for each match.",
     delete_match_btn:"Delete this match",
     confirm_delete_match:"Delete this match? Its saved predictions will be removed too.",
     round_8:"Round of 8",
@@ -1033,6 +1037,10 @@ const STR = {
     avatar_invalid_type:"Pick an image file (PNG, JPG or WEBP).",
     avatar_saved:"✓ Profile photo updated",
     avatar_removed:"Profile photo removed",
+    logout_title:"Log out on this device",
+    logout_desc:"This doesn't delete anything — it just forgets who YOU are on this browser. Next time it will only ask for an email: if it already exists, you're recognized and logged in directly; if it's new (e.g. another player's), it will ask for their name. Handy for setting up several people from the same device.",
+    logout_btn:"Log out",
+    logout_confirm:"Log out on this device? Your predictions and profile stay saved — you'll just need to enter your email again next time.",
     next_change_available:"You can change it again on:",
     save_profile:"Save changes",
     profile_saved:"Profile updated",
@@ -4137,9 +4145,9 @@ async function deletePlayerPermanently(pid){
 // ronda) para que sea fácil saber qué "match_id" usar al llenar el CSV de
 // pronósticos de jugadores.
 function exportPredictionsTemplateCSV(){
-  const header = 'player,match_id,home,away,round,reg_home,reg_away,et_home,et_away,pen_home,pen_away';
+  const header = 'player,email,match_id,round,home,away,reg_home,reg_away,et_home,et_away,pen_home,pen_away';
   const rows = state.matches.slice().sort((a,b)=>kickoffDate(a)-kickoffDate(b))
-    .map(m => ['', m.id, m.home, m.away, m.round, '', '', '', '', '', ''].map(csvEscape).join(','));
+    .map(m => ['', '', m.id, m.round, m.home, m.away, '', '', '', '', '', ''].map(csvEscape).join(','));
   const csv = [header, ...rows].join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -4157,8 +4165,13 @@ function triggerPredictionsCSVUpload(){
 }
 
 // Carga en bloque los pronósticos que la gente ya haya hecho (por ejemplo, a
-// mano o por WhatsApp antes de tener la app), para el torneo activo. Si el
-// nombre de jugador no existe todavía, se crea como un participante nuevo.
+// mano o por WhatsApp antes de tener la app), para el torneo activo. Cada fila
+// se identifica por CORREO: si ya existe alguien con ese correo, los puntos se
+// suman a su cuenta real (la misma con la que puede entrar después); si el
+// correo es nuevo, se crea una cuenta real de una vez (no un jugador "huérfano"
+// desconectado — esa persona ya puede entrar después con ese mismo correo).
+// La columna "round" es solo un seguro: si no coincide con la jornada/fase real
+// del partido (según su match_id), se avisa pero se usa la real, nunca se inventa.
 async function handlePredictionsCSVFile(file){
   const msg = document.getElementById('preds-csv-msg');
   msg.textContent = '';
@@ -4169,30 +4182,40 @@ async function handlePredictionsCSVFile(file){
     const header = rows[0].map(h=>h.trim().toLowerCase());
     const idx = (n) => header.indexOf(n);
 
+    playerDirectory = await loadPlayerDirectory();
     const existingPreds = await loadAllPreds(state.tournament);
-    const usernameToPid = {};
-    for(const pid in existingPreds){
-      usernameToPid[normalizeForMatch(existingPreds[pid].username)] = pid;
-    }
+    const matchesById = {};
+    state.matches.forEach(m => matchesById[m.id] = m);
 
     const predsByPid = {};
-    let importedRows = 0, newPlayers = 0;
+    let importedRows = 0, newPlayers = 0, roundMismatches = 0, skippedNoEmail = 0, skippedUnknownMatch = 0;
+
     for(let i=1; i<rows.length; i++){
       const r = rows[i];
       if(!r || r.every(c=>c.trim()==='')) continue;
       const get = (n) => { const j = idx(n); return j>=0 ? (r[j]||'').trim() : ''; };
       const uname = get('player');
+      const email = get('email');
       const matchId = get('match_id');
-      if(!uname || !matchId) continue;
-      const key = normalizeForMatch(uname);
-      let pid = usernameToPid[key];
-      if(!pid){
-        pid = 'csv_' + slugifyTournamentId(uname) + '_' + Math.random().toString(36).slice(2,7);
-        usernameToPid[key] = pid;
+      const roundDeclared = get('round');
+      if(!email || !matchId){ skippedNoEmail++; continue; }
+
+      const match = matchesById[matchId];
+      if(!match){ skippedUnknownMatch++; continue; }
+      if(roundDeclared && normalizeForMatch(roundDeclared) !== normalizeForMatch(match.round)) roundMismatches++;
+
+      const entry = findDirectoryEntryByEmail(email);
+      let pid;
+      if(entry){
+        pid = entry.pid;
+      } else {
+        pid = genId();
+        playerDirectory[pid] = {username: uname || email.split('@')[0], email, retired:false};
         newPlayers++;
       }
+
       if(!predsByPid[pid]){
-        predsByPid[pid] = {username: uname, preds: (existingPreds[pid] && existingPreds[pid].preds) || {}};
+        predsByPid[pid] = {username: playerDirectory[pid].username, preds: (existingPreds[pid] && existingPreds[pid].preds) || {}};
       }
       const regH=numOrNull(get('reg_home')), regA=numOrNull(get('reg_away'));
       const etH=numOrNull(get('et_home')), etA=numOrNull(get('et_away'));
@@ -4210,11 +4233,18 @@ async function handlePredictionsCSVFile(file){
       return;
     }
 
+    if(newPlayers > 0) await savePlayerDirectory();
     for(const pid in predsByPid){
       await safeSet(predsKey(state.tournament, pid), JSON.stringify(predsByPid[pid]), true);
     }
     state.allPreds = await loadAllPreds(state.tournament);
-    showToast(`✓ ${importedRows} ${LANG==='es'?'pronósticos cargados':'predictions loaded'} (${newPlayers} ${LANG==='es'?'jugadores nuevos':'new players'})`, 'ok');
+
+    let extra = '';
+    if(skippedNoEmail) extra += ` · ${skippedNoEmail} ${LANG==='es'?'filas omitidas (sin correo o sin match_id)':'rows skipped (missing email or match_id)'}`;
+    if(skippedUnknownMatch) extra += ` · ${skippedUnknownMatch} ${LANG==='es'?'filas con match_id que no existe en este torneo':'rows with a match_id not found in this tournament'}`;
+    if(roundMismatches) extra += ` · ⚠️ ${roundMismatches} ${LANG==='es'?'filas con jornada declarada distinta a la real (se usó la real)':"rows where the declared round didn't match the real one (real one was used)"}`;
+
+    showToast(`✓ ${importedRows} ${LANG==='es'?'pronósticos cargados':'predictions loaded'} (${newPlayers} ${LANG==='es'?'jugadores nuevos':'new players'})${extra}`, 'ok');
     goTo('resultados');
   }catch(e){
     msg.style.color='var(--red)'; msg.textContent = t('csv_parse_error') + ': ' + e.message;
@@ -4468,6 +4498,12 @@ function renderProfileView(){
       `}
     </div>
 
+    <div style="margin-top:22px; padding:14px; border:1px solid var(--line); border-radius:10px; background:rgba(47,128,237,.08);">
+      <h3 style="color:var(--blue); font-size:20px; margin-bottom:6px;">${t('logout_title')}</h3>
+      <p class="small-note" style="display:block;">${t('logout_desc')}</p>
+      <button class="btn ghost" style="margin-top:8px;" onclick="logout()">${t('logout_btn')}</button>
+    </div>
+
     <div style="margin-top:22px; padding-top:14px; border-top:1px solid var(--line);">
       <h3 style="color:var(--red); font-size:18px; margin-bottom:8px;">${t('danger_zone')}</h3>
       <button class="btn danger" onclick="resetMyData()">${t('reset_data')}</button>
@@ -4634,6 +4670,17 @@ async function saveProfileEdits(){
   window.__profileNameEditorOpen = false;
   goTo('perfil');
   showToast(t('profile_saved'), 'ok');
+}
+
+// Cierra sesión SOLO en este navegador/dispositivo: borra el perfil local
+// (que decide quién eres tú aquí) pero NO toca el directorio de jugadores ni
+// sus pronósticos — así puedes volver a entrar con tu correo, o usar este
+// mismo dispositivo para registrar a otra persona (te reconoce si su correo
+// ya existe, o te pide su nombre si es nuevo).
+async function logout(){
+  if(!confirm(t('logout_confirm'))) return;
+  await safeDelete('profile', false);
+  location.reload();
 }
 
 async function resetMyData(){
