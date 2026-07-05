@@ -319,7 +319,23 @@ table.leaderboard tr.me{background:rgba(0,179,107,.10);}
   .brand h1{font-size:24px;}
   .team .name{font-size:13px;}
   .score-box input{width:38px; height:46px; font-size:20px;}
+  .top-actions{gap:6px;}
+  .top-actions button{padding:7px 9px !important; font-size:13px;}
+  .modal{padding:18px 14px; max-width:94vw;}
+  table.leaderboard{font-size:12.5px;}
 }
+
+/* ------------------------------------------------------------
+   Ajuste de tamaño de letra/logos: usa "zoom" en vez de solo
+   font-size porque escala TODO por igual (texto, botones, íconos
+   de equipo) sin romper el diseño. Funciona en Chrome/Safari/Edge
+   (los navegadores de celular más comunes). Se guarda en este
+   navegador para que no haya que repetirlo cada vez.
+   ------------------------------------------------------------ */
+html[data-textsize="lg"] #app{ zoom: 1.15; }
+html[data-textsize="xl"] #app{ zoom: 1.3; }
+html[data-textsize="lg"] .modal-backdrop .modal{ zoom: 1.15; }
+html[data-textsize="xl"] .modal-backdrop .modal{ zoom: 1.3; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
@@ -335,6 +351,8 @@ table.leaderboard tr.me{background:rgba(0,179,107,.10);}
       </div>
     </div>
     <div class="top-actions">
+      <button class="btn ghost" id="help-btn" onclick="openHelpModal()" style="padding:8px 12px; display:none;" title="Ayuda">❓</button>
+      <button class="btn ghost" id="textsize-btn" onclick="cycleTextSize()" style="padding:8px 10px; font-weight:800;" title="Tamaño de letra">A</button>
       <div class="lang-toggle">
         <button id="btn-es" onclick="setLang('es')">ES</button>
         <button id="btn-en" onclick="setLang('en')">EN</button>
@@ -362,29 +380,56 @@ table.leaderboard tr.me{background:rgba(0,179,107,.10);}
 
 <div id="onboarding" class="modal-backdrop" style="display:none;">
   <div class="modal">
-    <div id="ob-register-block">
+    <div id="ob-email-step">
       <h2 data-i18n="welcome_title">¡Bienvenido a la quiniela!</h2>
-      <p class="desc" data-i18n="welcome_desc">Crea tu perfil para empezar a pronosticar.</p>
+      <p class="desc" data-i18n="welcome_desc_email">Ingresa tu correo para entrar. Si ya juegas antes, te reconocemos automáticamente.</p>
       <div class="form-grid">
-        <div id="ob-username-field">
-          <label data-i18n="label_username">Nombre de usuario</label>
-          <input type="text" id="ob-username" maxlength="20" placeholder="Ej. GoleadorMX">
-        </div>
-        <div id="ob-email-field">
+        <div>
           <label data-i18n="label_email">Correo electrónico</label>
           <input type="email" id="ob-email" maxlength="80" placeholder="tucorreo@ejemplo.com">
         </div>
-        <button class="btn primary" onclick="completeOnboarding()" data-i18n="btn_start" style="margin-top:6px;">Empezar a jugar</button>
+        <button class="btn primary" onclick="submitEmailStep()" data-i18n="btn_continue" style="margin-top:6px;">Continuar</button>
         <div class="hint" id="ob-error" style="color:var(--red);"></div>
       </div>
     </div>
-    <div id="ob-whoareyou-block" style="display:none;">
-      <h2 data-i18n="whoareyou_title">Selecciona quién eres</h2>
-      <p class="desc" data-i18n="whoareyou_desc">Ya existe alguien registrado con ese nombre. Elige tu perfil o continúa como jugador nuevo.</p>
-      <div class="form-grid" id="ob-whoareyou-list"></div>
-      <button class="btn ghost" onclick="backToRegisterForm()" data-i18n="whoareyou_new_btn" style="margin-top:10px;">Soy nuevo, continuar como jugador nuevo</button>
-      <div class="hint" id="ob-whoareyou-error" style="color:var(--red);"></div>
+    <div id="ob-name-step" style="display:none;">
+      <h2 data-i18n="welcome_new_title">¡Correo nuevo!</h2>
+      <p class="desc" data-i18n="welcome_new_desc">No encontramos ese correo — crea tu nombre de jugador para empezar.</p>
+      <div class="form-grid">
+        <div>
+          <label data-i18n="label_username">Nombre de usuario</label>
+          <input type="text" id="ob-username" maxlength="20" placeholder="Ej. GoleadorMX">
+        </div>
+        <button class="btn primary" onclick="submitNameStep()" data-i18n="btn_start" style="margin-top:6px;">Empezar a jugar</button>
+        <button class="btn ghost" onclick="backToEmailStep()" data-i18n="btn_back" style="margin-top:6px;">Volver</button>
+        <div class="hint" id="ob-name-error" style="color:var(--red);"></div>
+      </div>
     </div>
+  </div>
+</div>
+
+<div id="help-modal" class="modal-backdrop" style="display:none;">
+  <div class="modal">
+    <h2 data-i18n="help_title">Reglas de la quiniela</h2>
+    <div style="margin-top:10px;">
+      <h3 style="color:var(--gold); font-size:18px; margin-bottom:6px;" data-i18n="scoring_title">Puntaje</h3>
+      <ul class="small-note" style="padding-left:18px; display:block;">
+        <li data-i18n="scoring_5">5 pts — Marcador exacto</li>
+        <li data-i18n="scoring_4">4 pts</li>
+        <li data-i18n="scoring_3">3 pts</li>
+        <li data-i18n="scoring_1">1 pt</li>
+        <li data-i18n="scoring_0">0 pts — No aciertas nada</li>
+      </ul>
+    </div>
+    <div style="margin-top:16px;">
+      <h3 style="color:var(--blue); font-size:18px; margin-bottom:6px;" data-i18n="th_tiebreak">Desempate</h3>
+      <p class="small-note" style="display:block;" data-i18n="tiebreak_explainer"></p>
+    </div>
+    <div style="margin-top:16px;">
+      <h3 style="color:var(--green); font-size:18px; margin-bottom:6px;" data-i18n="help_stages_title">Etapas del partido</h3>
+      <p class="small-note" style="display:block;" data-i18n="help_stages_desc"></p>
+    </div>
+    <button class="btn primary" onclick="closeHelpModal()" style="margin-top:18px;" data-i18n="btn_close">Cerrar</button>
   </div>
 </div>
 
@@ -406,12 +451,15 @@ const STR = {
     loading:"Cargando…",
     welcome_title:"¡Bienvenido a la quiniela!",
     welcome_desc:"Crea tu perfil para empezar a pronosticar.",
+    welcome_desc_email:"Ingresa tu correo para entrar. Si ya juegas antes, te reconocemos automáticamente.",
+    welcome_new_title:"¡Correo nuevo!",
+    welcome_new_desc:"No encontramos ese correo — crea tu nombre de jugador para empezar.",
+    btn_continue:"Continuar",
+    btn_back:"Volver",
     label_username:"Nombre de usuario",
     label_email:"Correo electrónico",
     err_email_required:"Escribe un correo electrónico válido.",
-    whoareyou_title:"Selecciona quién eres",
-    whoareyou_desc:"Ya existe alguien registrado con ese nombre. Elige tu perfil o continúa como jugador nuevo.",
-    whoareyou_new_btn:"Soy nuevo, continuar como jugador nuevo",
+    err_account_retired:"Esta cuenta está retirada. Contacta al administrador si crees que es un error.",
     btn_start:"Empezar a jugar",
     err_username_required:"Escribe un nombre de usuario (mínimo 3 caracteres).",
     nothing_to_change:"No hay cambios que guardar.",
@@ -439,8 +487,8 @@ const STR = {
     admin_pen_checkbox:"¿Se definió por penales?",
     admin_et_label:"Marcador final tras el tiempo extra",
     admin_pen_label:"Marcador de la tanda de penales",
-    open_live_fifa:"Abrir marcadores en vivo de FIFA.com",
-    open_live_fifa_hint:"Se abre en una pestaña nueva. Revisa el marcador ahí y regresa aquí para capturarlo — toma unos segundos.",
+    pending_results_title:"Partidos pendientes de capturar marcador",
+    pending_results_none:"Todo al día — no hay marcadores pendientes.",
     venue:"Sede",
     kickoff:"Hora",
     status_finished:"Finalizado",
@@ -459,6 +507,7 @@ const STR = {
     notif_already_on:"Ya tienes los avisos activados en este navegador",
     notif_denied:"✗ No se activó — revisa los permisos de notificaciones de tu navegador",
     notif_unsupported:"Tu navegador no soporta notificaciones",
+    notif_ios_hint:"En iPhone/iPad: toca Compartir → \"Agregar a pantalla de inicio\" y abre la app desde ahí — Safari normal no permite notificaciones. Aun así, solo llegan mientras la app esté abierta o recién usada, no es un aviso push en segundo plano.",
     leaderboard_title:"Tabla de posiciones en vivo",
     leaderboard_empty:"Todavía no hay pronósticos guardados. ¡Sé el primero!",
     th_rank:"#",
@@ -467,6 +516,34 @@ const STR = {
     th_exact:"Marcadores exactos",
     th_tiebreak:"Desempate",
     tiebreak_explainer:"Desempate en caso de puntos iguales: se suman los goles que pronosticaste (de la etapa en que realmente terminó cada partido: 90', tiempo extra o penales) y se les resta los goles reales. Quien quede más cerca de 0 conserva el puesto.",
+    leaderboard_view_label:"Ver tabla de:",
+    help_title:"Reglas de la quiniela",
+    help_stages_title:"Etapas del partido",
+    help_stages_desc:"Si un partido de eliminación directa termina en empate, se juega tiempo extra (120') y, si sigue igual, penales. Puedes pronosticar cada etapa por separado: hasta 5 pts por los 90', 5 más por el tiempo extra y 5 más por los penales — 15 pts en total si aciertas las tres.",
+    btn_close:"Cerrar",
+    leaderboard_view_general:"Cada jornada/fase por separado",
+    leaderboard_view_all:"Todo el torneo (acumulado)",
+    combined_views_title:"Quinielas combinadas",
+    combined_views_desc:"Combina varias jornadas o fases (por ejemplo Jornada 1 + Jornada 2, u Octavos hasta la Final) en una sola tabla acumulada, seleccionable desde Tabla de posiciones.",
+    combined_views_empty:"Aún no has creado ninguna quiniela combinada.",
+    combined_views_name_label:"Nombre de la quiniela combinada",
+    combined_views_rounds_label:"Jornadas/fases a incluir (elige 2 o más)",
+    combined_views_create_btn:"Crear quiniela combinada",
+    combined_views_err:"Escribe un nombre y elige al menos 2 jornadas/fases.",
+    toast_combined_saved:"✓ Quiniela combinada creada",
+    confirm_delete_combined:"¿Eliminar esta quiniela combinada? Esto no borra partidos ni pronósticos, solo la vista combinada.",
+    form_col:"Forma",
+    zones_title:"Zonas destacadas de la tabla de equipos",
+    zones_desc:"Define qué lugares se resaltan y de qué color — por ejemplo 1°-2° en dorado (van directo a semifinal), 3°-6° en azul (juegan liguilla), y los últimos 2 en rojo (descienden). Cada torneo tiene sus propias zonas, porque no todas las ligas se estructuran igual.",
+    zones_empty:"Aún no has definido ninguna zona destacada.",
+    zones_tournament_label:"Competición / torneo",
+    zones_from_label:"Desde el puesto",
+    zones_to_label:"Hasta el puesto",
+    zones_color_label:"Color",
+    zones_label_label:"Etiqueta (qué significa esa zona)",
+    zones_create_btn:"Agregar zona",
+    zones_err:"Revisa los puestos (desde ≤ hasta) y escribe una etiqueta.",
+    toast_zone_saved:"✓ Zona guardada",
     leaderboard_per_round_note:"La tabla se reinicia en cada jornada o fase — cada una premia su propio 1°, 2° y 3° lugar. Las jornadas o fases anteriores se quedan guardadas abajo, en su acordeón.",
     update_results_title:"Actualizar resultados y horarios",
     update_results_desc:"Solo tú, como administrador de esta quiniela, ves esta pestaña. Aquí capturas el marcador final y los horarios de cada partido (revisa FIFA.com o tu fuente de confianza). Esto recalcula los puntos de todos al instante.",
@@ -481,8 +558,6 @@ const STR = {
     toast_match_added:"✓ Partido agregado correctamente",
     toast_match_deleted:"Partido eliminado",
     toast_seed_reloaded:"✓ Datos actualizados",
-    reload_seed_btn:"Recargar datos de partidos",
-    reload_seed_hint:"Úsalo cuando yo (Claude) actualice el calendario o resultados en el código: esto trae los partidos nuevos y completa los que ya terminaron, sin borrar nada que tú ya hayas capturado a mano.",
     csv_export_btn:"Descargar CSV actual",
     logo_zip_title:"Cargar escudos/logos reales (ZIP)",
     logo_zip_desc:"Sube un archivo .zip con una imagen por equipo (PNG, JPG o WEBP). El nombre de cada archivo debe ser igual al nombre del equipo tal como aparece en la app (ej. \"Suchitepéquez.png\", \"Comunicaciones.png\"). Los que no tengan logo real siguen mostrando el escudo dibujado automáticamente.",
@@ -525,7 +600,7 @@ const STR = {
     csv_result_nothing_changed:"No hubo cambios que aplicar (todo ya estaba igual).",
     csv_dismiss_btn:"Cerrar",
     csv_import_btn:"Cargar CSV de partidos",
-    csv_hint:"El CSV trae los partidos de TODOS los torneos, cada fila marcada en la columna \"tournament\". Las columnas \"name_esp\" y \"name_eng\" son opcionales — ahí escribes el nombre completo del torneo (con espacios, tildes, apóstrofes, lo que sea) en español e inglés; se usa para nombrar el torneo nuevo o renombrar uno existente, sin necesidad de otra sección aparte. La columna \"season\" también es opcional — úsala para separar temporadas dentro de la misma liga (ej. \"Apertura 2026\", \"Clausura 2027\") sin crear otro torneo. La fecha y la hora van en columnas separadas: \"date\" (AAAA-MM-DD) y \"time\" (HH:MM en formato 24 horas), ambas en hora de Guatemala. Cada partido se identifica por su columna \"id\" (si ya existe se actualiza, si no existe se agrega). Nunca toca los perfiles ni los pronósticos de nadie.",
+    csv_hint:"El CSV trae los partidos de TODOS los torneos, cada fila marcada en la columna \"tournament\". Las columnas \"name_esp\" y \"name_eng\" son opcionales — ahí escribes el nombre completo del torneo (con espacios, tildes, apóstrofes, lo que sea) en español e inglés; se usa para nombrar el torneo nuevo o renombrar uno existente, sin necesidad de otra sección aparte. La columna \"season\" también es opcional — úsala para separar temporadas dentro de la misma liga (ej. \"Apertura 2026\", \"Clausura 2027\") sin crear otro torneo. La fecha y la hora van en columnas separadas: \"date\" (AAAA-MM-DD) y \"time\" (HH:MM en formato 24 horas), ambas en hora de Guatemala. Cada partido se identifica por su columna \"id\" (si ya existe se actualiza con los datos del CSV, si no existe se agrega). Los partidos que ya tenías guardados y NO aparecen en este CSV se dejan exactamente como están — nada se borra ni se pisa por ausencia. Nunca toca los perfiles ni los pronósticos de nadie.",
     csv_empty_error:"El CSV no tiene filas de partidos válidas.",
     csv_invalid_rows:"Hay filas sin equipo local, visitante u horario válido",
     csv_parse_error:"No se pudo leer el archivo",
@@ -539,6 +614,11 @@ const STR = {
     edit_kickoff_title:"Horario del partido",
     edit_kickoff_label:"Fecha y hora de inicio (horario de Guatemala, UTC-6)",
     save_kickoff:"Guardar horario",
+    edit_teams_label:"Nombres de los equipos / selecciones",
+    edit_teams_hint:"Útil para cambiar partidos con \"Por Definirse\" en cuanto se conozcan los equipos reales.",
+    save_teams:"Guardar equipos",
+    err_teams_required:"Escribe el nombre de ambos equipos.",
+    toast_teams_saved:"✓ Nombres de equipos actualizados correctamente",
     kickoff_saved:"Horario guardado",
     new_match_title:"Agregar partido nuevo",
     new_match_desc:"Útil para cargar Octavos, Cuartos, Semifinal y la Final conforme se vayan confirmando.",
@@ -583,7 +663,6 @@ const STR = {
     player_mgmt_title:"Gestión de jugadores",
     player_mgmt_desc:"Corrige el nombre visible de alguien (por un error de dedo, o si hay dos personas con el mismo nombre) o márcalo como retirado si ya no sigue en la quiniela. Nunca se borra ningún pronóstico ni punto que ya tenga acumulado — su historial se queda intacto, solo cambia cómo se muestra.",
     player_retired_tag:"retirado",
-    player_rename_btn:"Renombrar",
     player_retire_btn:"Retirar",
     player_reactivate_btn:"Reactivar",
     toast_player_renamed:"✓ Nombre actualizado",
@@ -629,23 +708,24 @@ const STR = {
     round_final:"Final",
     profile_title:"Mi perfil",
     change_username:"Puedes cambiar tu nombre de usuario una vez al mes.",
+    change_name_btn:"Cambiar nombre",
+    cancel_edit_btn:"Cancelar",
+    avatar_label:"Foto de perfil",
+    avatar_upload_btn:"Subir foto",
+    avatar_remove_btn:"Quitar foto",
+    avatar_invalid_type:"Elige un archivo de imagen (PNG, JPG o WEBP).",
+    avatar_saved:"✓ Foto de perfil actualizada",
+    avatar_removed:"Foto de perfil eliminada",
     next_change_available:"Podrás cambiarlo de nuevo el:",
     save_profile:"Guardar cambios",
     profile_saved:"Perfil actualizado",
     username_locked:"Ya cambiaste tu nombre este mes. Podrás volver a hacerlo el",
     browser_reminders_title:"Avisos del navegador",
-    browser_reminders_body:"Esta app no puede enviar correos ni notificaciones fuera del navegador. Lo que sí funciona: si activas los avisos aquí y dejas esta pestaña abierta, te muestra una notificación real 30 minutos antes de cada partido.",
+    browser_reminders_body:"Esta app no puede enviar correos ni notificaciones fuera del navegador. Lo que sí funciona: si activas los avisos aquí y dejas esta pestaña abierta (o recién la usaste), te muestra una notificación real 30 minutos antes de cada partido. En iPhone/iPad solo funciona si agregas la página a tu pantalla de inicio primero. Ningún dispositivo puede recibir avisos con la app completamente cerrada — eso requeriría un servidor de notificaciones push, que esta app no tiene.",
     danger_zone:"Zona de datos",
-    switch_account_title:"Cambiar de cuenta de Claude",
-    switch_account_desc:"Esta app no puede cerrar tu sesión ni iniciar otra por ti — eso lo controla Claude.ai, no este archivo. Pero aquí están los pasos exactos si quieres usar otro correo.",
-    switch_account_btn:"Ver cómo cambiar de cuenta",
-    switch_step1:"1. Sal de este panel y busca tu nombre o ícono en la esquina de la interfaz de Claude (fuera de este recuadro).",
-    switch_step2:"2. Elige \"Cerrar sesión\" en el menú de tu cuenta.",
-    switch_step3:"3. Inicia sesión de nuevo con el otro correo que quieras usar.",
-    switch_step4:"4. Abre otra vez este mismo link publicado de la quiniela — tu nuevo perfil se crea automáticamente.",
-    switch_tip:"Tip: si quieres tener ambas cuentas abiertas al mismo tiempo (por ejemplo en dos pestañas), usa una ventana de incógnito para la segunda cuenta.",
-    reset_data:"Borrar mis pronósticos y perfil",
-    reset_confirm:"¿Seguro? Esto borra tu perfil y tus pronósticos guardados en esta quiniela.",
+
+    reset_data:"Eliminar toda mi información",
+    reset_confirm:"¿Seguro? Esto borra tu perfil, tu correo registrado y todos tus pronósticos guardados en esta quiniela, en todos los torneos. No se puede deshacer.",
     admin_zone_title:"Modo administrador",
     admin_zone_desc:"Si tú organizas esta quiniela, desbloquea aquí el control de resultados y horarios. Esta pestaña solo aparece en el perfil que ingrese el código correcto.",
     label_admin_code:"Código de administrador",
@@ -688,12 +768,15 @@ const STR = {
     loading:"Loading…",
     welcome_title:"Welcome to the pool!",
     welcome_desc:"Create your profile to start predicting.",
+    welcome_desc_email:"Enter your email to sign in. If you've played before, we'll recognize you automatically.",
+    welcome_new_title:"New email!",
+    welcome_new_desc:"We couldn't find that email — create your player name to get started.",
+    btn_continue:"Continue",
+    btn_back:"Back",
     label_username:"Username",
     label_email:"Email address",
     err_email_required:"Enter a valid email address.",
-    whoareyou_title:"Select who you are",
-    whoareyou_desc:"Someone is already registered with that name. Pick your profile or continue as a new player.",
-    whoareyou_new_btn:"I'm new, continue as a new player",
+    err_account_retired:"This account is retired. Contact the admin if you think this is a mistake.",
     btn_start:"Start playing",
     err_username_required:"Enter a username (at least 3 characters).",
     nothing_to_change:"No changes to save.",
@@ -721,8 +804,8 @@ const STR = {
     admin_pen_checkbox:"Was it decided on penalties?",
     admin_et_label:"Final score after extra time",
     admin_pen_label:"Penalty shootout score",
-    open_live_fifa:"Open live scores on FIFA.com",
-    open_live_fifa_hint:"Opens in a new tab. Check the score there and come back to enter it — takes a few seconds.",
+    pending_results_title:"Matches pending a final score",
+    pending_results_none:"All caught up — no pending scores.",
     venue:"Venue",
     kickoff:"Kickoff",
     status_finished:"Finished",
@@ -741,6 +824,7 @@ const STR = {
     notif_already_on:"Browser reminders are already enabled",
     notif_denied:"✗ Not enabled — check your browser's notification permissions",
     notif_unsupported:"Your browser doesn't support notifications",
+    notif_ios_hint:"On iPhone/iPad: tap Share → \"Add to Home Screen\" and open the app from there — regular Safari tabs can't show notifications. Even then, they only arrive while the app is open or recently used, not as a background push.",
     leaderboard_title:"Live leaderboard",
     leaderboard_empty:"No predictions saved yet. Be the first!",
     th_rank:"#",
@@ -749,6 +833,34 @@ const STR = {
     th_exact:"Exact scores",
     th_tiebreak:"Tiebreak",
     tiebreak_explainer:"Tiebreak when points are equal: add up the goals you predicted (for the stage each match actually ended in: 90', extra time, or penalties) and subtract the real goals. Whoever lands closest to 0 keeps the higher spot.",
+    leaderboard_view_label:"View table for:",
+    help_title:"Pool rules",
+    help_stages_title:"Match stages",
+    help_stages_desc:"If a knockout match ends tied, it goes to extra time (120'), and penalties if it's still tied. You can predict each stage separately: up to 5 pts for the 90', 5 more for extra time, and 5 more for penalties — 15 pts total if you nail all three.",
+    btn_close:"Close",
+    leaderboard_view_general:"Each matchday/phase separately",
+    leaderboard_view_all:"Whole tournament (combined)",
+    combined_views_title:"Combined pools",
+    combined_views_desc:"Combine several matchdays or phases (e.g. Matchday 1 + Matchday 2, or Round of 16 through the Final) into one accumulated table, selectable from the Leaderboard tab.",
+    combined_views_empty:"You haven't created any combined pool yet.",
+    combined_views_name_label:"Combined pool name",
+    combined_views_rounds_label:"Matchdays/phases to include (pick 2 or more)",
+    combined_views_create_btn:"Create combined pool",
+    combined_views_err:"Enter a name and pick at least 2 matchdays/phases.",
+    toast_combined_saved:"✓ Combined pool created",
+    confirm_delete_combined:"Delete this combined pool? This does not delete matches or predictions, only the combined view.",
+    form_col:"Form",
+    zones_title:"Team table highlight zones",
+    zones_desc:"Define which spots get highlighted and in what color — e.g. 1st-2nd in gold (go straight to semifinal), 3rd-6th in blue (play a mini-league), and the bottom 2 in red (relegated). Each tournament has its own zones, since not every league is structured the same way.",
+    zones_empty:"You haven't defined any highlight zone yet.",
+    zones_tournament_label:"Competition / tournament",
+    zones_from_label:"From position",
+    zones_to_label:"To position",
+    zones_color_label:"Color",
+    zones_label_label:"Label (what that zone means)",
+    zones_create_btn:"Add zone",
+    zones_err:"Check the positions (from ≤ to) and enter a label.",
+    toast_zone_saved:"✓ Zone saved",
     leaderboard_per_round_note:"The table resets every matchday or phase — each one crowns its own 1st, 2nd and 3rd place. Past matchdays or phases stay saved below, in their own accordion.",
     update_results_title:"Update results and kickoff times",
     update_results_desc:"Only you, as this pool's admin, can see this tab. Enter each match's final score and kickoff time here (check FIFA.com or your trusted source). This instantly recalculates everyone's points.",
@@ -763,8 +875,6 @@ const STR = {
     toast_match_added:"✓ Match added correctly",
     toast_match_deleted:"Match deleted",
     toast_seed_reloaded:"✓ Data refreshed",
-    reload_seed_btn:"Reload match data",
-    reload_seed_hint:"Use this when I (Claude) update the schedule or results in the code: it pulls in new matches and fills in finished ones, without erasing anything you've already entered by hand.",
     csv_export_btn:"Download current CSV",
     logo_zip_title:"Upload real team logos (ZIP)",
     logo_zip_desc:"Upload a .zip file with one image per team (PNG, JPG, or WEBP). Each file's name must match the team's name exactly as it appears in the app (e.g. \"Suchitepéquez.png\", \"Comunicaciones.png\"). Teams without a real logo keep showing the auto-drawn crest.",
@@ -807,7 +917,7 @@ const STR = {
     csv_result_nothing_changed:"Nothing to apply (everything already matched).",
     csv_dismiss_btn:"Close",
     csv_import_btn:"Upload match CSV",
-    csv_hint:"The CSV includes matches from ALL tournaments, each row tagged in the \"tournament\" column. The \"name_esp\" and \"name_eng\" columns are optional — write the tournament's full display name there (spaces, accents, apostrophes, anything) in Spanish and English; it's used to name a new tournament or rename an existing one, no separate section needed. The \"season\" column is also optional — use it to separate seasons within the same league (e.g. \"Apertura 2026\", \"Clausura 2027\") without creating another tournament. Date and time are separate columns: \"date\" (YYYY-MM-DD) and \"time\" (24-hour HH:MM), both in Guatemala time. Each match is matched by its \"id\" column (updated if it exists, added if not). It never touches anyone's profile or predictions.",
+    csv_hint:"The CSV includes matches from ALL tournaments, each row tagged in the \"tournament\" column. The \"name_esp\" and \"name_eng\" columns are optional — write the tournament's full display name there (spaces, accents, apostrophes, anything) in Spanish and English; it's used to name a new tournament or rename an existing one, no separate section needed. The \"season\" column is also optional — use it to separate seasons within the same league (e.g. \"Apertura 2026\", \"Clausura 2027\") without creating another tournament. Date and time are separate columns: \"date\" (YYYY-MM-DD) and \"time\" (24-hour HH:MM), both in Guatemala time. Each match is matched by its \"id\" column (updated with the CSV's data if it exists, added if not). Matches you already had saved that do NOT appear in this CSV are left exactly as they are — nothing gets deleted or overwritten just because it's missing. It never touches anyone's profile or predictions.",
     csv_empty_error:"The CSV has no valid match rows.",
     csv_invalid_rows:"Some rows are missing a home team, away team, or valid kickoff time",
     csv_parse_error:"Couldn't read the file",
@@ -821,6 +931,11 @@ const STR = {
     edit_kickoff_title:"Match kickoff time",
     edit_kickoff_label:"Kickoff date and time (Guatemala time, UTC-6)",
     save_kickoff:"Save kickoff time",
+    edit_teams_label:"Team names",
+    edit_teams_hint:"Useful to replace \"TBD\" placeholders once the real teams are known.",
+    save_teams:"Save teams",
+    err_teams_required:"Enter both team names.",
+    toast_teams_saved:"✓ Team names updated correctly",
     kickoff_saved:"Kickoff time saved",
     new_match_title:"Add a new match",
     new_match_desc:"Useful for loading Round of 8, Quarterfinals, Semifinal and the Final as they get confirmed.",
@@ -865,7 +980,6 @@ const STR = {
     player_mgmt_title:"Player management",
     player_mgmt_desc:"Fix someone's displayed name (a typo, or two people with the same name) or mark them as retired if they're no longer part of the pool. No prediction or point they already earned ever gets deleted — their history stays intact, only how it's displayed changes.",
     player_retired_tag:"retired",
-    player_rename_btn:"Rename",
     player_retire_btn:"Retire",
     player_reactivate_btn:"Reactivate",
     toast_player_renamed:"✓ Name updated",
@@ -911,23 +1025,24 @@ const STR = {
     round_final:"Final",
     profile_title:"My profile",
     change_username:"You can change your username once a month.",
+    change_name_btn:"Change name",
+    cancel_edit_btn:"Cancel",
+    avatar_label:"Profile photo",
+    avatar_upload_btn:"Upload photo",
+    avatar_remove_btn:"Remove photo",
+    avatar_invalid_type:"Pick an image file (PNG, JPG or WEBP).",
+    avatar_saved:"✓ Profile photo updated",
+    avatar_removed:"Profile photo removed",
     next_change_available:"You can change it again on:",
     save_profile:"Save changes",
     profile_saved:"Profile updated",
     username_locked:"You already changed your name this month. You can do it again on",
     browser_reminders_title:"Browser reminders",
-    browser_reminders_body:"This app can't send emails or notifications outside the browser. What does work: enable reminders here and keep this tab open, and it will show a real notification 30 minutes before each match.",
+    browser_reminders_body:"This app can't send emails or notifications outside the browser. What does work: enable reminders here and keep this tab open (or recently used), and it will show a real notification 30 minutes before each match. On iPhone/iPad this only works if you add the page to your home screen first. No device can receive alerts with the app fully closed — that would require a push-notification server, which this app doesn't have.",
     danger_zone:"Data zone",
-    switch_account_title:"Switch Claude account",
-    switch_account_desc:"This app can't log you out or log you in — that's controlled by Claude.ai, not this file. Here are the exact steps if you want to use a different email.",
-    switch_account_btn:"Show me how to switch accounts",
-    switch_step1:"1. Leave this panel and find your name or icon in the corner of the Claude interface (outside this box).",
-    switch_step2:"2. Choose \"Log out\" from your account menu.",
-    switch_step3:"3. Sign back in with the other email you want to use.",
-    switch_step4:"4. Open this same published pool link again — your new profile is created automatically.",
-    switch_tip:"Tip: to keep both accounts open at once (e.g. in two tabs), use an incognito/private window for the second account.",
-    reset_data:"Clear my predictions and profile",
-    reset_confirm:"Sure? This deletes your profile and saved predictions in this pool.",
+
+    reset_data:"Delete all my information",
+    reset_confirm:"Sure? This deletes your profile, your registered email, and every prediction you've saved in this pool, across all tournaments. This can't be undone.",
     admin_zone_title:"Admin mode",
     admin_zone_desc:"If you run this pool, unlock result and kickoff-time controls here. This tab only shows up on the profile that enters the right code.",
     label_admin_code:"Admin code",
@@ -1107,6 +1222,20 @@ const FLAG_SVG = {
   jo: ()=> `${hStripes(['#000000','#FFFFFF','#007A3D'])}<polygon points="0,0 26,20 0,40" fill="#CE1126"/>${starShape(9,20,3,'#FFFFFF')}`,
   pa: ()=> `<rect width="30" height="20" fill="#FFFFFF"/><rect x="30" width="30" height="20" fill="#DA121A"/><rect y="20" width="30" height="20" fill="#0072C6"/><rect x="30" y="20" width="30" height="20" fill="#FFFFFF"/>${starShape(15,10,4,'#0072C6')}${starShape(45,30,4,'#DA121A')}`,
 };
+
+// Círculo de foto de perfil de un JUGADOR (distinto al de equipos/selecciones):
+// usa la foto que haya subido, o un círculo con sus iniciales si no tiene.
+function playerAvatarHTML(pid, username, size){
+  const photo = playerDirectory[pid] && playerDirectory[pid].photo;
+  if(photo){
+    return `<img class="player-avatar" src="${photo}" style="width:${size}px; height:${size}px; border-radius:50%; object-fit:cover; display:block; flex-shrink:0;" alt="">`;
+  }
+  let hash = 0;
+  for(let i=0;i<username.length;i++){ hash = (hash*31 + username.charCodeAt(i)) % 360; }
+  const hue = Math.abs(hash);
+  const initials = username.split(/\s+/).map(w=>w.charAt(0)).slice(0,2).join('').toUpperCase();
+  return `<div class="player-avatar" style="width:${size}px; height:${size}px; border-radius:50%; background:hsl(${hue},55%,32%); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:${Math.round(size*0.4)}px; flex-shrink:0;">${escapeHtml(initials)}</div>`;
+}
 
 function initialsCircle(name){
   // Respaldo para cualquier equipo que todavía no tiene bandera/escudo dibujado.
@@ -1289,16 +1418,6 @@ async function savePlayerDirectory(){
 function displayUsername(pid, fallback){
   const entry = playerDirectory[pid];
   return entry && entry.retired ? `${fallback} (${t('player_retired_tag')})` : fallback;
-}
-// Busca en el directorio jugadores cuyo nombre (normalizado) coincida con el
-// que alguien acaba de escribir en el registro. Sirve para detectar "¿ya
-// existe alguien con este nombre?" y ofrecer la pantalla de reconocimiento
-// en vez de crear un jugador duplicado sin querer.
-function findDirectoryMatchesByName(name){
-  const norm = normalizeForMatch(name);
-  return Object.entries(playerDirectory)
-    .filter(([pid, entry]) => entry && entry.username && normalizeForMatch(entry.username) === norm)
-    .map(([pid, entry]) => ({pid, username: entry.username, email: entry.email || '', retired: !!entry.retired}));
 }
 async function loadTournamentSettings(){
   const raw = await safeGet('tournament_settings', true);
@@ -1486,6 +1605,7 @@ const SEED_MATCHES_BY_TOURNAMENT = {
 // Cámbialo por el tuyo editando esta línea antes de compartir el archivo si quieres
 // uno distinto — es una barrera sencilla pensada para uso entre amigos, no seguridad real.
 const ADMIN_CODE = "MUNDIAL2026-ADMIN";
+const ZONE_COLORS = { verde:"#00b36b", azul:"#2f80ed", dorado:"#f2c14e", rojo:"#e63946", morado:"#9b59b6" };
 // Minutos antes del silbatazo inicial en que se cierran los pronósticos.
 const LOCK_MINUTES = 10;
 // Minutos antes del inicio en que la tarjeta se marca como "por empezar" (aviso visual).
@@ -1504,6 +1624,9 @@ let state = {
   lastCsvResult: null,     // resumen de la última carga de CSV ya confirmada
   teamLogos: {},           // logos reales cargados por ZIP/PNG para el torneo activo: {nombreEquipo: dataURL}
   pendingLogoImport: null, // vista previa de logos nuevos esperando confirmación (comparación antes/después)
+  combinedViews: [],       // quinielas combinadas (varias jornadas/fases en una sola tabla) del torneo activo
+  standingsZones: [],      // resaltados de posición configurables en la tabla de EQUIPOS (ascenso/descenso/clasificación)
+  leaderboardView: 'general', // qué se muestra en Tabla de posiciones: 'general' | 'all' | id de un combo
   view: "pronosticos",
   saving: false,
 };
@@ -1579,6 +1702,28 @@ function matchesKey(tournamentId){ return 'matches_data:' + tournamentId; }
 function predsKey(tournamentId, playerId){ return 'predictions:' + tournamentId + ':' + playerId; }
 function predsPrefix(tournamentId){ return 'predictions:' + tournamentId + ':'; }
 function logosKey(tournamentId){ return 'team_logos:' + tournamentId; }
+function combinedViewsKey(tournamentId){ return 'combined_views:' + tournamentId; }
+
+async function loadCombinedViews(tournamentId){
+  const raw = await safeGet(combinedViewsKey(tournamentId), true);
+  if(!raw) return [];
+  try{ return JSON.parse(raw); }catch(e){ return []; }
+}
+async function saveCombinedViews(tournamentId, views){
+  await safeSet(combinedViewsKey(tournamentId), JSON.stringify(views), true);
+}
+function distinctRounds(){
+  return [...new Set(state.matches.map(m=>m.round))];
+}
+function standingsZonesKey(tournamentId){ return 'standings_zones:' + tournamentId; }
+async function loadStandingsZones(tournamentId){
+  const raw = await safeGet(standingsZonesKey(tournamentId), true);
+  if(!raw) return [];
+  try{ return JSON.parse(raw); }catch(e){ return []; }
+}
+async function saveStandingsZones(tournamentId, zones){
+  await safeSet(standingsZonesKey(tournamentId), JSON.stringify(zones), true);
+}
 
 async function loadTeamLogos(tournamentId){
   const raw = await safeGet(logosKey(tournamentId), true);
@@ -2185,28 +2330,52 @@ function computeSeasonGroupStandings(matches, tournamentId){
   return seasons;
 }
 
-function renderStandingsTable(teams){
+function renderStandingsTable(teams, zones){
+  zones = zones || [];
+  function zoneForRank(rank){
+    return zones.find(z => rank >= z.fromRank && rank <= z.toRank);
+  }
+  const rowsHtml = teams.map((x,i) => {
+    const rank = i+1;
+    const zone = zoneForRank(rank);
+    const zoneColor = zone ? (ZONE_COLORS[zone.color] || zone.color) : null;
+    const rowStyle = zone ? ` style="background:${zoneColor}22; border-left:3px solid ${zoneColor};"` : '';
+    const form = lastFiveForTeam(x.team, null).slice().reverse();
+    const formHtml = form.length
+      ? form.map(r=>{
+          const cls = r.res==='W'?'w':(r.res==='L'?'l':'d');
+          const label = LANG==='es' ? (r.res==='W'?'V':(r.res==='L'?'D':'E')) : r.res;
+          return `<span class="form-badge ${cls}" style="margin-right:2px;" title="${escapeHtml(teamName(r.opp))} ${r.gf}-${r.gc}">${label}</span>`;
+        }).join('')
+      : `<span class="small-note">—</span>`;
+    return `<tr${rowStyle}><td>${flagOf(x.team)} ${teamName(x.team)}</td><td>${x.pj}</td><td>${x.pg}</td><td>${x.pe}</td><td>${x.pp}</td><td>${x.dg>0?'+':''}${x.dg}</td><td class="pts-col">${x.pts}</td><td>${formHtml}</td></tr>`;
+  }).join('');
+
+  const legendHtml = zones.length ? `
+    <div class="legend">
+      ${zones.map(z => `<span><span style="display:inline-block; width:11px; height:11px; border-radius:3px; background:${ZONE_COLORS[z.color]||z.color};"></span> ${z.fromRank}–${z.toRank}: ${escapeHtml(z.label)}</span>`).join('')}
+    </div>` : '';
+
   return `
     <table class="leaderboard mini">
-      <thead><tr><th>${t('team_col')}</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>DG</th><th>Pts</th></tr></thead>
-      <tbody>
-        ${teams.map(x=>`<tr><td>${flagOf(x.team)} ${teamName(x.team)}</td><td>${x.pj}</td><td>${x.pg}</td><td>${x.pe}</td><td>${x.pp}</td><td>${x.dg>0?'+':''}${x.dg}</td><td class="pts-col">${x.pts}</td></tr>`).join('')}
-      </tbody>
-    </table>`;
+      <thead><tr><th>${t('team_col')}</th><th>PJ</th><th>PG</th><th>PE</th><th>PP</th><th>DG</th><th>Pts</th><th>${t('form_col')}</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    ${legendHtml}`;
 }
 
 // Dibuja las tablas de un solo grupo de temporada. Si hay una sola tabla
 // (liga sin subgrupos), la muestra directo. Si hay varias (fase de grupos,
 // como el Mundial), las pone en acordeón para no mostrarlas todas de golpe.
-function renderGroupsBlock(groupsObj){
+function renderGroupsBlock(groupsObj, zones){
   const gKeys = Object.keys(groupsObj).sort();
   if(gKeys.length === 1){
-    return `<div class="group-card">${renderStandingsTable(groupsObj[gKeys[0]])}</div>`;
+    return `<div class="group-card">${renderStandingsTable(groupsObj[gKeys[0]], zones)}</div>`;
   }
   return gKeys.map(gLabel => `
     <details class="round-details">
       <summary>${gLabel}</summary>
-      <div class="groups-grid"><div class="group-card">${renderStandingsTable(groupsObj[gLabel])}</div></div>
+      <div class="groups-grid"><div class="group-card">${renderStandingsTable(groupsObj[gLabel], zones)}</div></div>
     </details>
   `).join('');
 }
@@ -2218,11 +2387,12 @@ function renderGroupStandings(){
 
   const hasRealGroups = state.matches.some(m => !!m.group);
   const sectionTitle = hasRealGroups ? t('group_standings_title') : t('league_standings_title');
+  const zones = state.standingsZones || [];
 
   if(seasonKeys.length === 1){
     return `
       <div class="jornada-title" style="margin-top:0;"><h2>${sectionTitle}</h2></div>
-      ${renderGroupsBlock(seasons[seasonKeys[0]])}
+      ${renderGroupsBlock(seasons[seasonKeys[0]], zones)}
     `;
   }
 
@@ -2232,7 +2402,7 @@ function renderGroupStandings(){
     ${seasonKeys.map(sLabel => `
       <details class="round-details">
         <summary>${sLabel}</summary>
-        ${renderGroupsBlock(seasons[sLabel])}
+        ${renderGroupsBlock(seasons[sLabel], zones)}
       </details>
     `).join('')}
   `;
@@ -2279,6 +2449,7 @@ function renderStandingsBlock(rows){
         return `
         <div class="podium-card rank${i+1} ${isMe?'me':''}">
           <div class="podium-medal">${medals[i]}</div>
+          <div style="display:flex; justify-content:center; margin:4px 0 6px;">${playerAvatarHTML(r.pid, r.username, 56)}</div>
           <div class="podium-name">${escapeHtml(displayUsername(r.pid, r.username))}${isMe?` <span class="small-note">(${LANG==='es'?'tú':'you'})</span>`:''}</div>
           <div class="podium-pts">${r.total} <span class="small-note">${t('th_points').toLowerCase()}</span></div>
           <div class="small-note">${t('th_tiebreak')}: ${r.delta>0?'+':''}${r.delta}</div>
@@ -2290,7 +2461,7 @@ function renderStandingsBlock(rows){
     const isMe = state.profile && r.pid === state.profile.playerId;
     return `<tr class="${isMe?'me':''}">
       <td class="rank">${i+4}</td>
-      <td>${escapeHtml(displayUsername(r.pid, r.username))}${isMe?` <span class="small-note">(${LANG==='es'?'tú':'you'})</span>`:''}</td>
+      <td><div style="display:flex; align-items:center; gap:8px;">${playerAvatarHTML(r.pid, r.username, 26)}<span>${escapeHtml(displayUsername(r.pid, r.username))}${isMe?` <span class="small-note">(${LANG==='es'?'tú':'you'})</span>`:''}</span></div></td>
       <td class="pts-col">${r.total}</td>
       <td style="text-align:right; color:var(--muted);">${r.exact}</td>
       <td style="text-align:right; color:var(--muted);">${r.delta>0?'+':''}${r.delta}</td>
@@ -2306,6 +2477,11 @@ function renderStandingsBlock(rows){
   return podiumHtml + table;
 }
 
+function setLeaderboardView(val){
+  state.leaderboardView = val;
+  goTo('tabla');
+}
+
 function renderLeaderboardView(){
   if(state.matches.length === 0){
     return `
@@ -2314,40 +2490,110 @@ function renderLeaderboardView(){
     `;
   }
 
-  // Se agrupa por ronda/jornada (mismo criterio que en Pronósticos) para que la
-  // tabla se reinicie en cada una — así se puede premiar 1°/2°/3° por jornada
-  // o por fase, y las tablas anteriores se quedan guardadas en su acordeón.
-  const groups = new Map();
-  for(const m of state.matches){
-    if(!groups.has(m.round)) groups.set(m.round, []);
-    groups.get(m.round).push(m);
-  }
-  const roundsSorted = [...groups.entries()].sort((a,b)=> kickoffDate(a[1][0]) - kickoffDate(b[1][0]));
+  const combos = state.combinedViews || [];
+  const selectorHtml = `
+    <div style="margin-bottom:14px;">
+      <label>${t('leaderboard_view_label')}</label>
+      <select class="select-round" id="leaderboard-view-select" onchange="setLeaderboardView(this.value)">
+        <option value="general" ${state.leaderboardView==='general'?'selected':''}>${t('leaderboard_view_general')}</option>
+        <option value="all" ${state.leaderboardView==='all'?'selected':''}>${t('leaderboard_view_all')}</option>
+        ${combos.map(c => `<option value="${c.id}" ${state.leaderboardView===c.id?'selected':''}>${escapeHtml(c.name)}</option>`).join('')}
+      </select>
+    </div>
+  `;
 
-  let blocks = '';
-  for(const [roundKey, roundMatches] of roundsSorted){
-    const hasPending = roundMatches.some(m => m.status !== 'finished');
-    const doneCount = roundMatches.filter(m=>m.status==='finished').length;
-    const rows = computeStandingsForMatches(roundMatches);
-    blocks += `
-      <details class="round-details" ${hasPending ? 'open' : ''}>
-        <summary>${roundLabel(roundKey)} <span class="small-note">(${doneCount}/${roundMatches.length} ${LANG==='es'?'jugados':'played'})</span></summary>
-        ${renderStandingsBlock(rows)}
-      </details>
+  let playerSectionHtml = '';
+
+  if(state.leaderboardView === 'general' || !state.leaderboardView){
+    // Se agrupa por ronda/jornada. Se ordena de la MÁS RECIENTE a la más
+    // antigua, para que la quiniela vigente aparezca primero.
+    const groups = new Map();
+    for(const m of state.matches){
+      if(!groups.has(m.round)) groups.set(m.round, []);
+      groups.get(m.round).push(m);
+    }
+    const roundsSorted = [...groups.entries()].sort((a,b)=> kickoffDate(b[1][0]) - kickoffDate(a[1][0]));
+    let blocks = '';
+    let first = true;
+    for(const [roundKey, roundMatches] of roundsSorted){
+      const hasPending = roundMatches.some(m => m.status !== 'finished');
+      const doneCount = roundMatches.filter(m=>m.status==='finished').length;
+      const rows = computeStandingsForMatches(roundMatches);
+      blocks += `
+        <details class="round-details" ${(first || hasPending) ? 'open' : ''}>
+          <summary>${roundLabel(roundKey)} <span class="small-note">(${doneCount}/${roundMatches.length} ${LANG==='es'?'jugados':'played'})</span></summary>
+          ${renderStandingsBlock(rows)}
+        </details>
+      `;
+      first = false;
+    }
+    playerSectionHtml = `
+      <p class="small-note" style="display:block; margin:10px 0;">${t('tiebreak_explainer')}</p>
+      <p class="small-note" style="display:block; margin-bottom:14px;">${t('leaderboard_per_round_note')}</p>
+      ${blocks}
+    `;
+  } else {
+    let matchesForView, labelUsed;
+    if(state.leaderboardView === 'all'){
+      matchesForView = state.matches;
+      labelUsed = t('leaderboard_view_all');
+    } else {
+      const combo = combos.find(c => c.id === state.leaderboardView);
+      if(combo){
+        matchesForView = state.matches.filter(m => combo.rounds.includes(m.round));
+        labelUsed = combo.name;
+      } else {
+        // El combo se borró mientras estaba seleccionado: regresar a "todo".
+        matchesForView = state.matches;
+        labelUsed = t('leaderboard_view_all');
+        state.leaderboardView = 'all';
+      }
+    }
+    const rows = computeStandingsForMatches(matchesForView);
+    playerSectionHtml = `
+      <p class="small-note" style="display:block; margin:10px 0;">${t('tiebreak_explainer')}</p>
+      <div class="jornada-title" style="margin-top:6px;"><h3 style="font-size:20px; margin:0;">${escapeHtml(labelUsed)}</h3></div>
+      ${renderStandingsBlock(rows)}
     `;
   }
 
   return `
-    ${renderGroupStandings()}
     <div class="jornada-title"><h2>${t('leaderboard_title')}</h2><span>${tournamentName(state.tournament)}</span></div>
-    <p class="small-note" style="display:block; margin:10px 0;">${t('tiebreak_explainer')}</p>
-    <p class="small-note" style="display:block; margin-bottom:14px;">${t('leaderboard_per_round_note')}</p>
-    ${blocks}
+    ${selectorHtml}
+    ${playerSectionHtml}
+    ${renderGroupStandings()}
   `;
 }
 
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Partidos cuyo horario ya pasó pero todavía no tienen marcador capturado,
+// comparando la hora del partido contra la hora actual del dispositivo.
+// Se ordenan del más urgente (más tiempo esperando) al más reciente.
+function renderPendingResultsBlock(){
+  const now = Date.now();
+  const pending = state.matches
+    .filter(m => m.status !== 'finished' && kickoffDate(m).getTime() <= now)
+    .sort((a,b) => kickoffDate(a) - kickoffDate(b));
+  if(pending.length === 0){
+    return `
+      <div style="margin:14px 0; padding:12px; border:1px dashed var(--green); border-radius:10px; background:rgba(0,179,107,.06);">
+        <b style="color:var(--green);">✓ ${t('pending_results_none')}</b>
+      </div>`;
+  }
+  const rows = pending.map(m => `
+    <div class="csv-preview-row" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+      <span><b>${teamName(m.home)}</b> ${t('vs_short')} <b>${teamName(m.away)}</b> <span class="small-note">(${roundLabel(m.round)})</span></span>
+      <span class="mono small-note">${formatKickoff(m)}</span>
+    </div>
+  `).join('');
+  return `
+    <div style="margin:14px 0; padding:12px; border:1px dashed var(--red); border-radius:10px; background:rgba(230,57,70,.06);">
+      <b style="color:var(--red);">⏱ ${t('pending_results_title')} (${pending.length})</b>
+      <div style="margin-top:8px;">${rows}</div>
+    </div>`;
 }
 
 // ---- Vista: actualizar resultados (SOLO administrador) ----
@@ -2358,20 +2604,6 @@ function renderResultsAdminView(){
   const options = state.matches.map(m =>
     `<option value="${m.id}">${teamName(m.home)} ${t('vs_short')} ${teamName(m.away)} — ${m.status==='finished'?('✅ '+m.reg.home+'-'+m.reg.away):('⏳ '+t('status_pending'))}</option>`
   ).join('');
-
-  const fifaLinkHtml = state.tournament === 'worldcup' ? `
-    <a href="https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/scores-fixtures" target="_blank" rel="noopener" class="btn" style="display:inline-flex; align-items:center; gap:6px; text-decoration:none; margin-top:10px;">
-      🔗 ${t('open_live_fifa')}
-    </a>
-    <p class="small-note" style="max-width:620px; display:block; margin-top:6px;">${t('open_live_fifa_hint')}</p>
-  ` : '';
-
-  const reloadSeedHtml = `
-    <div style="margin:14px 0; padding:12px; border:1px dashed var(--blue); border-radius:10px; background:rgba(47,128,237,.06);">
-      <button class="btn" onclick="reloadSeedData()">🔄 ${t('reload_seed_btn')}</button>
-      <p class="small-note" style="display:block; margin-top:6px;">${t('reload_seed_hint')}</p>
-    </div>
-  `;
 
   const csvHtml = `
     <div style="margin:14px 0; padding:12px; border:1px dashed var(--green); border-radius:10px; background:rgba(0,179,107,.06);">
@@ -2478,6 +2710,25 @@ function renderResultsAdminView(){
       </div>
 
       <div style="margin-top:8px;">
+        <label>${t('edit_teams_label')}</label>
+        <p class="small-note" style="display:block; margin-bottom:6px;">${t('edit_teams_hint')}</p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <div>
+            <label>${t('field_home_team')}</label>
+            <input type="text" id="admin-team-home" placeholder="${LANG==='es'?'Ej. España':'e.g. Spain'}" style="padding:8px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk); min-width:180px;">
+          </div>
+          <div>
+            <label>${t('field_away_team')}</label>
+            <input type="text" id="admin-team-away" placeholder="${LANG==='es'?'Ej. Portugal':'e.g. Portugal'}" style="padding:8px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk); min-width:180px;">
+          </div>
+        </div>
+        <div style="margin-top:8px;">
+          <button class="btn" onclick="saveAdminTeams()">${t('save_teams')}</button>
+        </div>
+        <div class="hint" id="admin-teams-msg"></div>
+      </div>
+
+      <div style="margin-top:8px;">
         <button class="btn danger" onclick="deleteAdminMatch()">${t('delete_match_btn')}</button>
       </div>
     </div>
@@ -2486,8 +2737,7 @@ function renderResultsAdminView(){
   return `
     <div class="jornada-title"><h2>${t('update_results_title')}</h2><span>${tournamentName(state.tournament)}</span></div>
     <p class="small-note" style="max-width:620px; display:block;">${t('update_results_desc')}</p>
-    ${fifaLinkHtml}
-    ${reloadSeedHtml}
+    ${renderPendingResultsBlock()}
     ${csvHtml}
     ${editSectionHtml}
 
@@ -2505,6 +2755,14 @@ function renderResultsAdminView(){
       <button class="btn primary" onclick="addNewMatch()">${t('add_match_btn')}</button>
       <div class="hint" id="new-match-msg"></div>
     </div>
+
+    <div class="jornada-title" style="margin-top:30px;"><h2>${t('combined_views_title')}</h2></div>
+    <p class="small-note" style="max-width:620px; display:block;">${t('combined_views_desc')}</p>
+    ${renderCombinedViewsAdmin()}
+
+    <div class="jornada-title" style="margin-top:30px;"><h2>${t('zones_title')}</h2></div>
+    <p class="small-note" style="max-width:620px; display:block;">${t('zones_desc')}</p>
+    ${renderStandingsZonesAdmin()}
 
     <div class="jornada-title" style="margin-top:30px;"><h2>${t('new_tournament_title')}</h2></div>
     <p class="small-note" style="max-width:620px; display:block;">${t('new_tournament_desc')}</p>
@@ -2535,6 +2793,129 @@ function renderResultsAdminView(){
       <div class="hint" id="delete-tour-msg"></div>
     </div>
   `;
+}
+
+function renderCombinedViewsAdmin(){
+  const rounds = distinctRounds();
+  const existing = (state.combinedViews||[]).length === 0 ? `<div class="empty-state">${t('combined_views_empty')}</div>` :
+    state.combinedViews.map((c, idx) => `
+      <div class="csv-preview-row" style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span><b>${escapeHtml(c.name)}</b> <span class="small-note">(${c.rounds.map(r=>roundLabel(r)).join(', ')})</span></span>
+        <button class="btn danger" onclick="deleteCombinedView(${idx})">🗑️</button>
+      </div>`).join('');
+
+  const checks = rounds.map(r => `
+    <label style="display:flex; align-items:center; gap:6px; margin:4px 0; cursor:pointer; font-weight:400;">
+      <input type="checkbox" class="combined-round-check" value="${escapeHtml(r)}" style="width:16px; height:16px;"> ${roundLabel(r)}
+    </label>`).join('');
+
+  return `
+    ${existing}
+    <div class="form-grid" style="margin-top:12px;">
+      <div><label>${t('combined_views_name_label')}</label><input type="text" id="new-combined-name" placeholder="${LANG==='es'?'Ej. Eliminación directa':'e.g. Knockout stage'}"></div>
+      <div><label>${t('combined_views_rounds_label')}</label>${checks}</div>
+      <button class="btn primary" onclick="createCombinedView()">${t('combined_views_create_btn')}</button>
+      <div class="hint" id="combined-views-msg"></div>
+    </div>
+  `;
+}
+
+async function createCombinedView(){
+  if(!(state.profile && state.profile.isAdmin)) return;
+  const name = document.getElementById('new-combined-name').value.trim();
+  const checked = [...document.querySelectorAll('.combined-round-check:checked')].map(c=>c.value);
+  const msg = document.getElementById('combined-views-msg');
+  if(!name || checked.length < 2){
+    msg.style.color='var(--red)'; msg.textContent = t('combined_views_err'); return;
+  }
+  state.combinedViews.push({id:'cv_' + Date.now().toString(36), name, rounds:checked});
+  await saveCombinedViews(state.tournament, state.combinedViews);
+  showToast(t('toast_combined_saved'), 'ok');
+  goTo('resultados');
+}
+
+async function deleteCombinedView(idx){
+  if(!(state.profile && state.profile.isAdmin)) return;
+  if(!confirm(t('confirm_delete_combined'))) return;
+  state.combinedViews.splice(idx, 1);
+  await saveCombinedViews(state.tournament, state.combinedViews);
+  goTo('resultados');
+}
+
+// El panel de zonas puede administrar CUALQUIER torneo desde aquí mismo, sin
+// tener que cambiar de pestaña activa — así se evita crear por accidente una
+// zona de Liga Nacional mientras la pestaña del Mundial sigue seleccionada.
+let zonesAdminTournamentId = null;
+let zonesAdminList = [];
+
+function renderStandingsZonesAdmin(){
+  if(zonesAdminTournamentId === null){
+    zonesAdminTournamentId = state.tournament;
+    zonesAdminList = state.standingsZones || [];
+  }
+  const tourOptions = allTournaments().map(tt =>
+    `<option value="${tt.id}" ${tt.id===zonesAdminTournamentId?'selected':''}>${tournamentIcon(tt.id)} ${tournamentName(tt.id)}</option>`
+  ).join('');
+  const colorOptions = Object.keys(ZONE_COLORS).map(k => `<option value="${k}">${k}</option>`).join('');
+  const zones = zonesAdminList || [];
+  const existing = zones.length === 0 ? `<div class="empty-state">${t('zones_empty')}</div>` :
+    zones.map((z, idx) => `
+      <div class="csv-preview-row" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+        <span style="display:inline-block; width:14px; height:14px; border-radius:3px; background:${ZONE_COLORS[z.color]||z.color}; flex-shrink:0;"></span>
+        <span style="flex:1;"><b>${z.fromRank}–${z.toRank}</b>: ${escapeHtml(z.label)}</span>
+        <button class="btn danger" onclick="deleteStandingsZone(${idx})">🗑️</button>
+      </div>`).join('');
+
+  return `
+    <div class="form-grid">
+      <div>
+        <label>${t('zones_tournament_label')}</label>
+        <select id="zone-tournament-sel" onchange="switchZonesAdminTournament(this.value)">${tourOptions}</select>
+      </div>
+    </div>
+    <div style="margin-top:10px;">${existing}</div>
+    <div class="form-grid" style="margin-top:12px;">
+      <div style="display:flex; gap:8px;">
+        <div style="flex:1;"><label>${t('zones_from_label')}</label><input type="number" min="1" id="zone-from"></div>
+        <div style="flex:1;"><label>${t('zones_to_label')}</label><input type="number" min="1" id="zone-to"></div>
+      </div>
+      <div><label>${t('zones_color_label')}</label><select id="zone-color">${colorOptions}</select></div>
+      <div><label>${t('zones_label_label')}</label><input type="text" id="zone-label" placeholder="${LANG==='es'?'Ej. Clasifica a semifinal':'e.g. Advances to semifinal'}"></div>
+      <button class="btn primary" onclick="createStandingsZone()">${t('zones_create_btn')} (${tournamentName(zonesAdminTournamentId)})</button>
+      <div class="hint" id="zones-msg"></div>
+    </div>
+  `;
+}
+
+async function switchZonesAdminTournament(tid){
+  zonesAdminTournamentId = tid;
+  zonesAdminList = (tid === state.tournament) ? (state.standingsZones || []) : await loadStandingsZones(tid);
+  goTo('resultados');
+}
+
+async function createStandingsZone(){
+  if(!(state.profile && state.profile.isAdmin)) return;
+  const from = parseInt(document.getElementById('zone-from').value, 10);
+  const to = parseInt(document.getElementById('zone-to').value, 10);
+  const color = document.getElementById('zone-color').value;
+  const label = document.getElementById('zone-label').value.trim();
+  const msg = document.getElementById('zones-msg');
+  if(!from || !to || from > to || !label){
+    msg.style.color='var(--red)'; msg.textContent = t('zones_err'); return;
+  }
+  zonesAdminList.push({id:'z_'+Date.now().toString(36), fromRank:from, toRank:to, color, label});
+  await saveStandingsZones(zonesAdminTournamentId, zonesAdminList);
+  if(zonesAdminTournamentId === state.tournament) state.standingsZones = zonesAdminList;
+  showToast(`${t('toast_zone_saved')} (${tournamentName(zonesAdminTournamentId)})`, 'ok');
+  goTo('resultados');
+}
+
+async function deleteStandingsZone(idx){
+  if(!(state.profile && state.profile.isAdmin)) return;
+  zonesAdminList.splice(idx, 1);
+  await saveStandingsZones(zonesAdminTournamentId, zonesAdminList);
+  if(zonesAdminTournamentId === state.tournament) state.standingsZones = zonesAdminList;
+  goTo('resultados');
 }
 
 async function createTournament(){
@@ -2767,6 +3148,10 @@ function renderAdminScoreInputs(){
   `;
   const kickoffInput = document.getElementById('admin-kickoff');
   if(kickoffInput) kickoffInput.value = toLocalInputValue(m.kickoff);
+  const homeInput = document.getElementById('admin-team-home');
+  const awayInput = document.getElementById('admin-team-away');
+  if(homeInput) homeInput.value = m.home;
+  if(awayInput) awayInput.value = m.away;
 }
 
 function toggleAdminStageInputs(stage){
@@ -2876,6 +3261,34 @@ async function saveAdminKickoff(){
   if(ok){
     state.matches = freshMatches;
     showToast(t('toast_kickoff_saved'), 'ok');
+    goTo('resultados');
+  } else {
+    msg.style.color='var(--red)';
+    msg.textContent = t('error_generic');
+  }
+}
+
+async function saveAdminTeams(){
+  if(!(state.profile && state.profile.isAdmin)) return;
+  const sel = document.getElementById('admin-match-select');
+  const matchId = sel.value;
+  const home = document.getElementById('admin-team-home').value.trim();
+  const away = document.getElementById('admin-team-away').value.trim();
+  const msg = document.getElementById('admin-teams-msg');
+  if(!home || !away){
+    msg.style.color='var(--red)'; msg.textContent = t('err_teams_required'); return;
+  }
+
+  const freshMatches = await loadMatches(state.tournament);
+  const m = freshMatches.find(x=>x.id===matchId);
+  if(!m){ msg.style.color='var(--red)'; msg.textContent = t('error_generic'); return; }
+  m.home = home;
+  m.away = away;
+
+  const ok = await safeSet(matchesKey(state.tournament), JSON.stringify(freshMatches), true);
+  if(ok){
+    state.matches = freshMatches;
+    showToast(t('toast_teams_saved'), 'ok');
     goTo('resultados');
   } else {
     msg.style.color='var(--red)';
@@ -3616,35 +4029,6 @@ async function gatherAllPlayers(){
   return players;
 }
 
-async function renamePlayer(pid){
-  if(!(state.profile && state.profile.isAdmin)) return;
-  const input = document.getElementById(`player-name-${pid}`);
-  const msg = document.getElementById('player-mgmt-msg');
-  const newName = input.value.trim();
-  if(!newName){
-    if(msg){ msg.style.color='var(--red)'; msg.textContent = t('err_username_required'); }
-    return;
-  }
-  try{
-    // Se actualiza el nombre en el pronóstico guardado de CADA torneo donde
-    // este jugador haya participado — así los puntos y marcadores que ya
-    // tenía quedan reasignados de verdad a su nuevo nombre, no solo mostrados
-    // distinto por encima.
-    for(const tour of allTournaments()){
-      const raw = await safeGet(predsKey(tour.id, pid), true);
-      if(!raw) continue;
-      const parsed = JSON.parse(raw);
-      parsed.username = newName;
-      await safeSet(predsKey(tour.id, pid), JSON.stringify(parsed), true);
-    }
-    state.allPreds = await loadAllPreds(state.tournament);
-    showToast(t('toast_player_renamed'), 'ok');
-    goTo('resultados');
-  }catch(e){
-    if(msg){ msg.style.color='var(--red)'; msg.textContent = `${t('player_action_error')}: ${e.message}`; }
-  }
-}
-
 async function togglePlayerRetired(pid){
   if(!(state.profile && state.profile.isAdmin)) return;
   const prev = playerDirectory[pid] || {};
@@ -3715,8 +4099,7 @@ function renderPlayerManagement(playersMap){
     const retired = !!dirEntry.retired;
     return `
       <div class="csv-preview-row" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-        <input type="text" id="player-name-${pid}" value="${escapeHtml(p.username)}" style="flex:1; min-width:140px; padding:8px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk);">
-        <button class="btn" onclick="renamePlayer('${pid}')">${t('player_rename_btn')}</button>
+        <span style="flex:1; min-width:140px;">${escapeHtml(p.username)}</span>
         <button class="btn ${retired?'primary':'danger'}" onclick="togglePlayerRetired('${pid}')">${retired ? t('player_reactivate_btn') : t('player_retire_btn')}</button>
         <button class="btn danger" onclick="deletePlayerPermanently('${pid}')">🗑️ ${t('player_delete_btn')}</button>
         ${retired ? `<span class="csv-badge same">${t('player_retired_tag')}</span>` : ''}
@@ -3931,35 +4314,6 @@ function renderLogoImportPreview(){
   `;
 }
 
-async function reloadSeedData(){
-  if(!(state.profile && state.profile.isAdmin)) return;
-  const seed = SEED_MATCHES_BY_TOURNAMENT[state.tournament] || [];
-  const current = await loadMatches(state.tournament);
-  const byId = {};
-  current.forEach(m => { byId[m.id] = m; });
-  let added = 0, filled = 0;
-  for(const sm of seed){
-    if(!byId[sm.id]){
-      byId[sm.id] = sm;
-      added++;
-    } else if(byId[sm.id].status !== 'finished' && sm.status === 'finished'){
-      byId[sm.id] = sm;
-      filled++;
-    }
-    // si ya está "finished" en la base guardada, se deja intacto: nunca se pisa
-    // un resultado que el administrador ya haya capturado en vivo.
-  }
-  const merged = Object.values(byId);
-  const ok = await safeSet(matchesKey(state.tournament), JSON.stringify(merged), true);
-  if(ok){
-    state.matches = merged;
-    showToast(`${t('toast_seed_reloaded')} (+${added} ${LANG==='es'?'nuevos':'new'}, ${filled} ${LANG==='es'?'completados':'filled in'})`, 'ok');
-    goTo('resultados');
-  } else {
-    showToast(t('error_generic'), 'err');
-  }
-}
-
 // ---- Vista: perfil ----
 // Busca pronósticos guardados con TU mismo nombre pero bajo otro registro —
 // típicamente porque se cargaron por CSV antes de que tú guardaras tu primer
@@ -4027,6 +4381,7 @@ async function refreshOrphanClaimSection(){
 }
 
 function renderProfileView(){
+  let profileNameEditorOpen = window.__profileNameEditorOpen || false;
   const p = state.profile;
   const lastChange = p.lastUsernameChange ? new Date(p.lastUsernameChange) : null;
   let nextAvailable = null;
@@ -4041,13 +4396,39 @@ function renderProfileView(){
     <div class="form-grid">
       <div>
         <label>${t('label_username')}</label>
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <span style="font-weight:700; font-size:17px;">${escapeHtml(p.username)}</span>
+          ${!profileNameEditorOpen ? `<button class="btn ghost" onclick="toggleNameEditor()">${t('change_name_btn')}</button>` : ''}
+        </div>
+      </div>
+      ${profileNameEditorOpen ? `
+      <div>
         <input type="text" id="pf-username" maxlength="20" value="${escapeHtml(p.username)}" ${locked?'disabled':''}>
         <div class="hint ${locked?'warn':''}">${locked
           ? t('username_locked') + ' ' + nextAvailable.toLocaleDateString(LANG==='es'?'es-MX':'en-US')
           : t('change_username')}</div>
       </div>
-      <button class="btn primary" onclick="saveProfileEdits()" ${locked?'disabled':''}>${t('save_profile')}</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn primary" onclick="saveProfileEdits()" ${locked?'disabled':''}>${t('save_profile')}</button>
+        <button class="btn ghost" onclick="toggleNameEditor()">${t('cancel_edit_btn')}</button>
+      </div>
       <div class="hint" id="pf-msg"></div>
+      ` : ''}
+    </div>
+
+    <div class="form-grid" style="margin-top:20px;">
+      <div>
+        <label>${t('avatar_label')}</label>
+        <div style="display:flex; align-items:center; gap:14px; margin-top:6px; flex-wrap:wrap;">
+          <div id="avatar-preview">${playerAvatarHTML(p.playerId, p.username, 64)}</div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <button class="btn ghost" onclick="document.getElementById('avatar-file-input').click()">${t('avatar_upload_btn')}</button>
+            ${(playerDirectory[p.playerId] && playerDirectory[p.playerId].photo) ? `<button class="btn ghost" onclick="removeAvatar()">${t('avatar_remove_btn')}</button>` : ''}
+          </div>
+          <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" style="display:none;" onchange="if(this.files[0]) handleAvatarUpload(this.files[0])">
+        </div>
+        <div class="hint" id="avatar-msg"></div>
+      </div>
     </div>
 
     <div id="claim-orphan-container"></div>
@@ -4087,21 +4468,6 @@ function renderProfileView(){
       `}
     </div>
 
-    <div style="margin-top:22px; padding:14px; border:1px solid var(--line); border-radius:10px; background:rgba(47,128,237,.08);">
-      <h3 style="color:var(--blue); font-size:20px; margin-bottom:6px;">${t('switch_account_title')}</h3>
-      <p class="small-note" style="display:block;">${t('switch_account_desc')}</p>
-      <button class="btn ghost" style="margin-top:8px;" onclick="toggleSwitchAccountHelp()">${t('switch_account_btn')}</button>
-      <div id="switch-account-steps" style="display:none; margin-top:10px;">
-        <ol class="small-note" style="padding-left:18px; display:block; line-height:1.7;">
-          <li>${t('switch_step1')}</li>
-          <li>${t('switch_step2')}</li>
-          <li>${t('switch_step3')}</li>
-          <li>${t('switch_step4')}</li>
-        </ol>
-        <p class="small-note" style="display:block; color:var(--red); margin-top:6px;">${t('switch_tip')}</p>
-      </div>
-    </div>
-
     <div style="margin-top:22px; padding-top:14px; border-top:1px solid var(--line);">
       <h3 style="color:var(--red); font-size:18px; margin-bottom:8px;">${t('danger_zone')}</h3>
       <button class="btn danger" onclick="resetMyData()">${t('reset_data')}</button>
@@ -4109,9 +4475,11 @@ function renderProfileView(){
   `;
 }
 
-function toggleSwitchAccountHelp(){
-  const box = document.getElementById('switch-account-steps');
-  box.style.display = box.style.display === 'none' ? 'block' : 'none';
+function openHelpModal(){
+  document.getElementById('help-modal').style.display = 'flex';
+}
+function closeHelpModal(){
+  document.getElementById('help-modal').style.display = 'none';
 }
 
 async function unlockAdmin(){
@@ -4147,6 +4515,79 @@ function previewNotif(){
   }
 }
 
+function refreshHeaderAvatar(){
+  const el = document.getElementById('avatar-letter');
+  if(!el || !state.profile) return;
+  const photo = playerDirectory[state.profile.playerId] && playerDirectory[state.profile.playerId].photo;
+  if(photo){
+    el.style.background = 'transparent';
+    el.innerHTML = `<img src="${photo}" style="width:26px; height:26px; border-radius:50%; object-fit:cover; display:block;" alt="">`;
+  } else {
+    el.style.background = '';
+    el.textContent = state.profile.username.charAt(0).toUpperCase();
+  }
+}
+
+function toggleNameEditor(){
+  window.__profileNameEditorOpen = !window.__profileNameEditorOpen;
+  goTo('perfil');
+}
+
+// Redimensiona/recorta cualquier foto a un cuadrado pequeño antes de guardarla,
+// para que el peso sea chico sin importar el tamaño original de la imagen.
+function resizeImageToDataURL(file, size){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('read fail'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('img fail'));
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleAvatarUpload(file){
+  const msg = document.getElementById('avatar-msg');
+  if(!file.type.startsWith('image/')){
+    if(msg){ msg.style.color='var(--red)'; msg.textContent = t('avatar_invalid_type'); }
+    return;
+  }
+  try{
+    const dataUrl = await resizeImageToDataURL(file, 200);
+    playerDirectory = await loadPlayerDirectory();
+    const prev = playerDirectory[state.profile.playerId] || {};
+    playerDirectory[state.profile.playerId] = {...prev, photo: dataUrl};
+    await savePlayerDirectory();
+    refreshHeaderAvatar();
+    showToast(t('avatar_saved'), 'ok');
+    goTo('perfil');
+  }catch(e){
+    if(msg){ msg.style.color='var(--red)'; msg.textContent = t('error_generic'); }
+  }
+}
+
+async function removeAvatar(){
+  playerDirectory = await loadPlayerDirectory();
+  const prev = playerDirectory[state.profile.playerId] || {};
+  delete prev.photo;
+  playerDirectory[state.profile.playerId] = prev;
+  await savePlayerDirectory();
+  refreshHeaderAvatar();
+  showToast(t('avatar_removed'), 'ok');
+  goTo('perfil');
+}
+
 async function saveProfileEdits(){
   const p = state.profile;
   const newUsername = document.getElementById('pf-username').value.trim();
@@ -4180,13 +4621,19 @@ async function saveProfileEdits(){
   await saveProfile(p);
   await saveMyPreds(state.tournament, state.myPreds); // reflejar el nuevo nombre en las predicciones guardadas
 
-  document.getElementById('pill-username').textContent = p.username;
-  document.getElementById('avatar-letter').textContent = p.username.charAt(0).toUpperCase();
+  // Mantener el directorio (usado para reconocer por correo) sincronizado con el nombre nuevo.
+  playerDirectory = await loadPlayerDirectory();
+  const dirEntry = playerDirectory[p.playerId] || {};
+  playerDirectory[p.playerId] = {...dirEntry, username: newUsername, email: p.email || dirEntry.email, lastUsernameChange: p.lastUsernameChange};
+  await savePlayerDirectory();
 
-  // Re-dibujar la pestaña: ahora el campo debe verse bloqueado hasta el próximo mes.
+  document.getElementById('pill-username').textContent = p.username;
+  refreshHeaderAvatar();
+
+  // Re-dibujar la pestaña: el editor se colapsa de nuevo y queda bloqueado hasta el próximo mes.
+  window.__profileNameEditorOpen = false;
   goTo('perfil');
-  const msg3 = document.getElementById('pf-msg');
-  msg3.style.color='var(--green)'; msg3.textContent = t('profile_saved');
+  showToast(t('profile_saved'), 'ok');
 }
 
 async function resetMyData(){
@@ -4195,6 +4642,9 @@ async function resetMyData(){
     for(const tour of allTournaments()){
       await safeDelete(predsKey(tour.id, state.profile.playerId), true);
     }
+    playerDirectory = await loadPlayerDirectory();
+    delete playerDirectory[state.profile.playerId];
+    await savePlayerDirectory();
   }
   await safeDelete('profile', false);
   location.reload();
@@ -4210,9 +4660,19 @@ function showToast(message, type){
   toastTimer = setTimeout(()=>{ el.className = 'toast ' + (type||''); }, 3200);
 }
 
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+function isStandalonePWA(){
+  return window.navigator.standalone === true || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+}
 function requestNotif(){
   if(!('Notification' in window)){
-    showToast(t('notif_unsupported'), 'err');
+    if(isIOS() && !isStandalonePWA()){
+      showToast(t('notif_ios_hint'), 'err');
+    } else {
+      showToast(t('notif_unsupported'), 'err');
+    }
     return;
   }
   if(Notification.permission === 'granted' && state.profile.notifyEnabled){
@@ -4246,92 +4706,65 @@ function checkReminders(){
   }
 }
 
-// ------------------ Onboarding ------------------
-function renderOnboardingUsernameField(){
-  const container = document.getElementById('ob-username-field');
-  if(!container) return;
-  // Registro libre: cualquiera que entre con el link escribe su propio nombre.
-  container.innerHTML = `
-    <label>${t('label_username')}</label>
-    <input type="text" id="ob-username" maxlength="20" placeholder="Ej. GoleadorMX">
-  `;
+// ------------------ Onboarding (por correo electrónico) ------------------
+function findDirectoryEntryByEmail(email){
+  const norm = email.trim().toLowerCase();
+  const found = Object.entries(playerDirectory).find(([pid, entry]) => entry && entry.email && entry.email.trim().toLowerCase() === norm);
+  return found ? {pid: found[0], ...found[1]} : null;
 }
 
-async function completeOnboarding(){
+async function submitEmailStep(){
   const err = document.getElementById('ob-error');
   err.textContent = '';
-  const inputEl = document.getElementById('ob-username');
   const emailEl = document.getElementById('ob-email');
-  const username = inputEl ? inputEl.value.trim() : '';
   const email = emailEl ? emailEl.value.trim() : '';
-
-  if(!username || username.length < 3){ err.textContent = t('err_username_required'); return; }
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ err.textContent = t('err_email_required'); return; }
 
   playerDirectory = await loadPlayerDirectory();
-  const matches = findDirectoryMatchesByName(username).filter(m => !m.retired);
-  if(matches.length > 0){
-    window.__pendingRegistration = {username, email};
-    renderWhoAreYouList(matches);
-    document.getElementById('ob-register-block').style.display = 'none';
-    document.getElementById('ob-whoareyou-block').style.display = 'block';
+  const entry = findDirectoryEntryByEmail(email);
+
+  if(entry){
+    if(entry.retired){ err.textContent = t('err_account_retired'); return; }
+    const profile = {
+      playerId: entry.pid,
+      username: entry.username,
+      email: entry.email,
+      lastUsernameChange: entry.lastUsernameChange || null,
+      notifyEnabled: false
+    };
+    await saveProfile(profile);
+    document.getElementById('onboarding').style.display = 'none';
+    await bootAfterProfile();
     return;
   }
 
-  await finishRegistrationAsNewPlayer(username, email);
+  // Correo nuevo: pedir nombre para crear el perfil.
+  window.__pendingEmail = email;
+  document.getElementById('ob-email-step').style.display = 'none';
+  document.getElementById('ob-name-step').style.display = 'block';
 }
 
-function renderWhoAreYouList(matches){
-  const list = document.getElementById('ob-whoareyou-list');
-  list.innerHTML = matches.map(m => `
-    <button class="btn primary" style="width:100%; margin-top:6px; text-align:left;" onclick="selectExistingPlayer('${m.pid}')">
-      👤 ${escapeHtml(m.username)}
-    </button>
-  `).join('');
+function backToEmailStep(){
+  window.__pendingEmail = null;
+  document.getElementById('ob-name-step').style.display = 'none';
+  document.getElementById('ob-email-step').style.display = 'block';
 }
 
-function backToRegisterForm(){
-  document.getElementById('ob-whoareyou-block').style.display = 'none';
-  document.getElementById('ob-register-block').style.display = 'block';
-  const pending = window.__pendingRegistration;
-  if(pending){
-    finishRegistrationAsNewPlayer(pending.username, pending.email);
-    window.__pendingRegistration = null;
-  }
-}
+async function submitNameStep(){
+  const err = document.getElementById('ob-name-error');
+  err.textContent = '';
+  const inputEl = document.getElementById('ob-username');
+  const username = inputEl ? inputEl.value.trim() : '';
+  const email = window.__pendingEmail;
+  if(!email){ backToEmailStep(); return; }
+  if(!username || username.length < 3){ err.textContent = t('err_username_required'); return; }
 
-async function selectExistingPlayer(pid){
-  const entry = playerDirectory[pid];
-  if(!entry) return;
-  const pending = window.__pendingRegistration || {};
-  // Si escribió un correo distinto al que ya tenía registrado, lo actualizamos.
-  if(pending.email && pending.email !== entry.email){
-    playerDirectory[pid] = {...entry, email: pending.email};
-    await savePlayerDirectory();
-  }
-  const profile = {
-    playerId: pid,
-    username: entry.username,
-    lastUsernameChange: null,
-    notifyEnabled: false
-  };
-  await saveProfile(profile);
-  window.__pendingRegistration = null;
-  document.getElementById('onboarding').style.display = 'none';
-  await bootAfterProfile();
-}
-
-async function finishRegistrationAsNewPlayer(username, email){
   const playerId = genId();
-  const profile = {
-    playerId,
-    username,
-    lastUsernameChange: null,
-    notifyEnabled: false
-  };
+  const profile = { playerId, username, email, lastUsernameChange: null, notifyEnabled: false };
   playerDirectory[playerId] = {username, email, retired:false};
   await savePlayerDirectory();
   await saveProfile(profile);
+  window.__pendingEmail = null;
 
   document.getElementById('onboarding').style.display = 'none';
   await bootAfterProfile();
@@ -4389,6 +4822,10 @@ async function switchTournament(tournamentId){
   state.myPreds = await loadMyPreds(state.tournament);
   state.allPreds = await loadAllPreds(state.tournament);
   state.teamLogos = await loadTeamLogos(state.tournament);
+  state.combinedViews = await loadCombinedViews(state.tournament);
+  state.standingsZones = await loadStandingsZones(state.tournament);
+  zonesAdminTournamentId = null;
+  state.leaderboardView = 'general';
   renderTournamentTabs(); // hasta ahora, ya con los datos del torneo correcto
   // Si estaba en "Actualizar resultados" y el nuevo torneo no tiene partidos aún,
   // igual la pestaña sigue disponible (solo se usa para agregar el primero).
@@ -4398,11 +4835,13 @@ async function switchTournament(tournamentId){
 async function bootAfterProfile(){
   document.getElementById('user-pill').style.display = 'flex';
   document.getElementById('tabs').style.display = 'flex';
+  document.getElementById('help-btn').style.display = 'inline-flex';
   document.getElementById('pill-username').textContent = state.profile.username;
   document.getElementById('avatar-letter').textContent = state.profile.username.charAt(0).toUpperCase();
   customTournaments = await loadCustomTournaments();
   tournamentSettings = await loadTournamentSettings();
   playerDirectory = await loadPlayerDirectory();
+  refreshHeaderAvatar();
   hiddenBaseTournaments = await loadHiddenBaseTournaments();
   allowedUsernames = await loadAllowedUsernames();
 
@@ -4410,6 +4849,8 @@ async function bootAfterProfile(){
   state.myPreds = await loadMyPreds(state.tournament);
   state.allPreds = await loadAllPreds(state.tournament);
   state.teamLogos = await loadTeamLogos(state.tournament);
+  state.combinedViews = await loadCombinedViews(state.tournament);
+  state.standingsZones = await loadStandingsZones(state.tournament);
 
   renderTournamentTabs(); // hasta ahora, ya con los partidos cargados
   goTo('pronosticos');
@@ -4427,7 +4868,20 @@ async function bootAfterProfile(){
   }, 30000);
 }
 
+let textSizeLevel = localStorage.getItem('q26_textsize') || 'normal';
+function applyTextSize(){
+  document.documentElement.setAttribute('data-textsize', textSizeLevel);
+  const btn = document.getElementById('textsize-btn');
+  if(btn) btn.textContent = textSizeLevel === 'normal' ? 'A' : textSizeLevel === 'lg' ? 'A+' : 'A++';
+  localStorage.setItem('q26_textsize', textSizeLevel);
+}
+function cycleTextSize(){
+  textSizeLevel = textSizeLevel === 'normal' ? 'lg' : (textSizeLevel === 'lg' ? 'xl' : 'normal');
+  applyTextSize();
+}
+
 async function init(){
+  applyTextSize();
   applyStaticI18n();
   allowedUsernames = await loadAllowedUsernames();
   const profile = await loadProfile();
@@ -4436,7 +4890,6 @@ async function init(){
     document.getElementById('onboarding').style.display = 'none';
     await bootAfterProfile();
   } else {
-    renderOnboardingUsernameField();
     document.getElementById('onboarding').style.display = 'flex';
   }
 }
