@@ -1,0 +1,30 @@
+name: Mantener despierto Supabase
+
+# Supabase pausa automáticamente los proyectos del plan gratis tras unos
+# días sin actividad. Este workflow le hace una consulta mínima (solo
+# lectura, sin tocar ningún dato) cada 3 días para que nunca llegue a
+# pausarse por inactividad, sin depender de que alguien abra la app.
+#
+# Cómo instalarlo:
+# 1. En tu repositorio de GitHub, crea la carpeta ".github/workflows/"
+#    (si no existe) y sube este archivo ahí tal cual, con este mismo nombre.
+# 2. Listo — GitHub lo ejecuta solo, según el horario de abajo.
+# 3. Puedes verificar que corrió bien en la pestaña "Actions" de tu repo.
+# 4. También puedes correrlo manualmente ahí mismo con el botón
+#    "Run workflow", sin esperar al horario.
+
+on:
+  schedule:
+    - cron: '0 8 */3 * *'   # cada 3 días a las 8:00 UTC (bien dentro de la ventana de 7 días de Supabase)
+  workflow_dispatch:         # permite ejecutarlo manualmente desde la pestaña "Actions"
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta mínima de solo lectura a Supabase
+        run: |
+          curl -s -o /dev/null -w "Respuesta de Supabase: %{http_code}\n" \
+            "https://brfjvdhpwrxjnubjchom.supabase.co/rest/v1/kv_store?select=key&limit=1" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZmp2ZGhwd3J4am51YmpjaG9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxOTYwNzksImV4cCI6MjA5ODc3MjA3OX0.kuplCJzkv46eWICN9glh_Pr-ttwn7qEzjLBWukWR5tI" \
+            -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyZmp2ZGhwd3J4am51YmpjaG9tIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxOTYwNzksImV4cCI6MjA5ODc3MjA3OX0.kuplCJzkv46eWICN9glh_Pr-ttwn7qEzjLBWukWR5tI"
