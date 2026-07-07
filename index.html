@@ -547,6 +547,9 @@ const STR = {
     tracking_missing:"Todavía no",
     tracking_summary:"jugadores ya registraron su pronóstico",
     tracking_no_players:"Todavía no hay jugadores registrados.",
+    tracking_fill_btn:"✏️ Capturar por él/ella",
+    tracking_edit_err:"Pon un marcador válido para ambos equipos (0 o más).",
+    toast_tracking_saved:"✓ Pronóstico capturado correctamente",
     db_warning_title:"No se pudo conectar bien con la base de datos",
     db_warning_desc:"Puede ser el proyecto de Supabase despertando (si estuvo inactivo se pausa solo) o tu conexión a internet. Por seguridad, NO se guardó ni se borró nada — lo que ves aquí es temporal. Espera unos segundos y reintenta.",
     db_warning_retry:"Reintentar",
@@ -885,6 +888,9 @@ const STR = {
     tracking_missing:"Not yet",
     tracking_summary:"players have already submitted their prediction",
     tracking_no_players:"There are no registered players yet.",
+    tracking_fill_btn:"✏️ Fill in for them",
+    tracking_edit_err:"Enter a valid score for both teams (0 or more).",
+    toast_tracking_saved:"✓ Prediction saved correctly",
     db_warning_title:"Couldn't connect to the database properly",
     db_warning_desc:"This can happen if the Supabase project is waking up (it auto-pauses after inactivity) or your internet connection. For safety, NOTHING was saved or deleted — what you see here is temporary. Wait a few seconds and retry.",
     db_warning_retry:"Retry",
@@ -3003,6 +3009,8 @@ function renderPredictionTrackingAdmin(){
   `;
 }
 
+let trackingEditingPid = null;
+
 function renderPredictionTrackingList(){
   const container = document.getElementById('tracking-list-container');
   if(!container) return;
@@ -3010,18 +3018,35 @@ function renderPredictionTrackingList(){
   const matchId = sel ? sel.value : null;
   if(!matchId){ container.innerHTML = ''; return; }
 
-  const entries = Object.entries(playerDirectory).filter(([pid, entry]) => !entry.retired);
+  const entries = Object.entries(playerDirectory).filter(([pid, entry]) => entry.retired !== true && entry.retired !== 'true');
   let doneCount = 0;
   const rows = entries.map(([pid, entry]) => {
     const pred = state.allPreds[pid] && state.allPreds[pid].preds && state.allPreds[pid].preds[matchId];
     const done = !!(pred && pred.reg && pred.reg.home !== null && pred.reg.away !== null && !isNaN(pred.reg.home) && !isNaN(pred.reg.away));
     if(done) doneCount++;
+    const isEditing = trackingEditingPid === pid;
+    const currentHome = (pred && pred.reg && pred.reg.home !== null) ? pred.reg.home : '';
+    const currentAway = (pred && pred.reg && pred.reg.away !== null) ? pred.reg.away : '';
     return `
-      <div class="csv-preview-row" style="display:flex; justify-content:space-between; align-items:center;">
-        <span>${escapeHtml(entry.username || '???')}</span>
-        ${done
-          ? `<span class="csv-badge new">✅ ${t('tracking_done')}</span>`
-          : `<span class="csv-badge" style="background:rgba(230,57,70,.12); color:var(--red);">❌ ${t('tracking_missing')}</span>`}
+      <div class="csv-preview-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span>${escapeHtml(entry.username || '???')}</span>
+          <div style="display:flex; gap:8px; align-items:center;">
+            ${done
+              ? `<span class="csv-badge new">✅ ${t('tracking_done')}</span>`
+              : `<span class="csv-badge" style="background:rgba(230,57,70,.12); color:var(--red);">❌ ${t('tracking_missing')}</span>`}
+            <button class="btn ghost" onclick="toggleTrackingEdit('${pid}')">${isEditing ? t('cancel_edit_btn') : t('tracking_fill_btn')}</button>
+          </div>
+        </div>
+        ${isEditing ? `
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="number" id="tracking-edit-home" value="${currentHome}" min="0" style="width:60px; text-align:center; padding:6px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk);">
+            <span>-</span>
+            <input type="number" id="tracking-edit-away" value="${currentAway}" min="0" style="width:60px; text-align:center; padding:6px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk);">
+            <button class="btn primary" onclick="saveTrackingPrediction('${pid}')">${t('save_result')}</button>
+          </div>
+          <div class="hint" id="tracking-edit-msg"></div>
+        ` : ''}
       </div>`;
   }).join('');
 
@@ -3029,6 +3054,44 @@ function renderPredictionTrackingList(){
     <div class="small-note" style="display:block; margin-bottom:8px; font-weight:600;">${doneCount}/${entries.length} ${t('tracking_summary')}</div>
     ${rows || `<div class="empty-state">${t('tracking_no_players')}</div>`}
   `;
+}
+
+function toggleTrackingEdit(pid){
+  trackingEditingPid = (trackingEditingPid === pid) ? null : pid;
+  renderPredictionTrackingList();
+}
+
+// Permite al administrador capturar (o corregir) el pronóstico de UN jugador
+// específico para el partido elegido — pensado para cuando alguien no tiene
+// señal/internet a tiempo y le pide al admin que lo registre por él. A
+// propósito NO revisa si el partido ya está bloqueado: es una excepción
+// exclusiva del panel de administrador, independiente de la hora del partido.
+async function saveTrackingPrediction(pid){
+  if(!(state.profile && state.profile.isAdmin)) return;
+  const sel = document.getElementById('tracking-match-select');
+  const matchId = sel ? sel.value : null;
+  const msg = document.getElementById('tracking-edit-msg');
+  if(!matchId){ return; }
+  const homeVal = numOrNull(document.getElementById('tracking-edit-home').value);
+  const awayVal = numOrNull(document.getElementById('tracking-edit-away').value);
+  if(homeVal === null || awayVal === null || homeVal < 0 || awayVal < 0){
+    if(msg){ msg.style.color='var(--red)'; msg.textContent = t('tracking_edit_err'); }
+    return;
+  }
+  const existingPreds = (state.allPreds[pid] && state.allPreds[pid].preds) || {};
+  const prevForMatch = existingPreds[matchId] || {};
+  const username = (playerDirectory[pid] && playerDirectory[pid].username)
+    || (state.allPreds[pid] && state.allPreds[pid].username) || '???';
+  const updatedPreds = {...existingPreds, [matchId]: {...prevForMatch, reg:{home:homeVal, away:awayVal}}};
+  const ok = await safeSet(predsKey(state.tournament, pid), JSON.stringify({username, preds:updatedPreds}), true);
+  if(!ok){
+    if(msg){ msg.style.color='var(--red)'; msg.textContent = t('error_generic'); }
+    return;
+  }
+  state.allPreds = await loadAllPreds(state.tournament);
+  trackingEditingPid = null;
+  showToast(t('toast_tracking_saved'), 'ok');
+  renderPredictionTrackingList();
 }
 
 function renderCombinedViewsAdmin(){
