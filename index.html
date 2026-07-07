@@ -469,6 +469,7 @@ const STR = {
     round_16:"Dieciseisavos de Final",
     stage_reg:"90 minutos",
     stage_et:"Tiempo extra",
+    label_reg90:"Marcador (90')",
     stage_pen:"Penales",
     stage_et_hint:"Solo cuenta si el partido llega ahí",
     stage_pen_hint:"Solo cuenta si se define por penales",
@@ -810,6 +811,7 @@ const STR = {
     round_16:"Round of 16",
     stage_reg:"90 minutes",
     stage_et:"Extra time",
+    label_reg90:"Score (90')",
     stage_pen:"Penalties",
     stage_et_hint:"Only counts if the match goes there",
     stage_pen_hint:"Only counts if it's decided on penalties",
@@ -3017,6 +3019,8 @@ function renderPredictionTrackingList(){
   const sel = document.getElementById('tracking-match-select');
   const matchId = sel ? sel.value : null;
   if(!matchId){ container.innerHTML = ''; return; }
+  const match = state.matches.find(x => x.id === matchId);
+  const allowExtra = match ? matchSupportsExtraStages(match) : false;
 
   const entries = Object.entries(playerDirectory).filter(([pid, entry]) => entry.retired !== true && entry.retired !== 'true');
   let doneCount = 0;
@@ -3025,8 +3029,15 @@ function renderPredictionTrackingList(){
     const done = !!(pred && pred.reg && pred.reg.home !== null && pred.reg.away !== null && !isNaN(pred.reg.home) && !isNaN(pred.reg.away));
     if(done) doneCount++;
     const isEditing = trackingEditingPid === pid;
-    const currentHome = (pred && pred.reg && pred.reg.home !== null) ? pred.reg.home : '';
-    const currentAway = (pred && pred.reg && pred.reg.away !== null) ? pred.reg.away : '';
+    const cur = (stage) => (pred && pred[stage]) ? pred[stage] : {home:'', away:''};
+    const reg = cur('reg'), et = cur('et'), pen = cur('pen');
+    const stageRow = (labelKey, prefix, vals) => `
+      <div style="display:flex; align-items:center; gap:8px; margin-top:6px;">
+        <span class="small-note" style="min-width:110px;">${t(labelKey)}</span>
+        <input type="number" id="tracking-edit-${prefix}-home" value="${vals.home ?? ''}" min="0" style="width:56px; text-align:center; padding:6px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk);">
+        <span>-</span>
+        <input type="number" id="tracking-edit-${prefix}-away" value="${vals.away ?? ''}" min="0" style="width:56px; text-align:center; padding:6px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk);">
+      </div>`;
     return `
       <div class="csv-preview-row" style="flex-direction:column; align-items:stretch; gap:6px;">
         <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
@@ -3039,12 +3050,10 @@ function renderPredictionTrackingList(){
           </div>
         </div>
         ${isEditing ? `
-          <div style="display:flex; gap:8px; align-items:center;">
-            <input type="number" id="tracking-edit-home" value="${currentHome}" min="0" style="width:60px; text-align:center; padding:6px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk);">
-            <span>-</span>
-            <input type="number" id="tracking-edit-away" value="${currentAway}" min="0" style="width:60px; text-align:center; padding:6px; border-radius:8px; border:1px solid var(--line); background:#04140e; color:var(--chalk);">
-            <button class="btn primary" onclick="saveTrackingPrediction('${pid}')">${t('save_result')}</button>
-          </div>
+          ${stageRow('label_reg90', 'reg', reg)}
+          ${allowExtra ? stageRow('stage_et', 'et', et) : ''}
+          ${allowExtra ? stageRow('stage_pen', 'pen', pen) : ''}
+          <div style="margin-top:6px;"><button class="btn primary" onclick="saveTrackingPrediction('${pid}')">${t('save_result')}</button></div>
           <div class="hint" id="tracking-edit-msg"></div>
         ` : ''}
       </div>`;
@@ -3066,23 +3075,41 @@ function toggleTrackingEdit(pid){
 // señal/internet a tiempo y le pide al admin que lo registre por él. A
 // propósito NO revisa si el partido ya está bloqueado: es una excepción
 // exclusiva del panel de administrador, independiente de la hora del partido.
+// Incluye tiempo extra y penales cuando el partido los admite (fases de
+// eliminación directa), no en fase de grupos ni jornadas de liga.
 async function saveTrackingPrediction(pid){
   if(!(state.profile && state.profile.isAdmin)) return;
   const sel = document.getElementById('tracking-match-select');
   const matchId = sel ? sel.value : null;
   const msg = document.getElementById('tracking-edit-msg');
   if(!matchId){ return; }
-  const homeVal = numOrNull(document.getElementById('tracking-edit-home').value);
-  const awayVal = numOrNull(document.getElementById('tracking-edit-away').value);
+
+  const homeVal = numOrNull(document.getElementById('tracking-edit-reg-home').value);
+  const awayVal = numOrNull(document.getElementById('tracking-edit-reg-away').value);
   if(homeVal === null || awayVal === null || homeVal < 0 || awayVal < 0){
     if(msg){ msg.style.color='var(--red)'; msg.textContent = t('tracking_edit_err'); }
     return;
   }
+
+  const readStage = (prefix) => {
+    const homeEl = document.getElementById(`tracking-edit-${prefix}-home`);
+    const awayEl = document.getElementById(`tracking-edit-${prefix}-away`);
+    if(!homeEl || !awayEl) return null;
+    const h = numOrNull(homeEl.value), a = numOrNull(awayEl.value);
+    if(h === null || a === null) return null;
+    return {home:h, away:a};
+  };
+  const etVal = readStage('et');
+  const penVal = readStage('pen');
+
   const existingPreds = (state.allPreds[pid] && state.allPreds[pid].preds) || {};
   const prevForMatch = existingPreds[matchId] || {};
   const username = (playerDirectory[pid] && playerDirectory[pid].username)
     || (state.allPreds[pid] && state.allPreds[pid].username) || '???';
-  const updatedPreds = {...existingPreds, [matchId]: {...prevForMatch, reg:{home:homeVal, away:awayVal}}};
+  const updatedPreds = {
+    ...existingPreds,
+    [matchId]: {...prevForMatch, reg:{home:homeVal, away:awayVal}, et:etVal, pen:penVal}
+  };
   const ok = await safeSet(predsKey(state.tournament, pid), JSON.stringify({username, preds:updatedPreds}), true);
   if(!ok){
     if(msg){ msg.style.color='var(--red)'; msg.textContent = t('error_generic'); }
