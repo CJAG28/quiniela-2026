@@ -540,6 +540,13 @@ const STR = {
     zones_desc:"Define qué lugares se resaltan y de qué color — por ejemplo 1°-2° en dorado (van directo a semifinal), 3°-6° en azul (juegan liguilla), y los últimos 2 en rojo (descienden). Cada torneo tiene sus propias zonas, porque no todas las ligas se estructuran igual.",
     zones_empty:"Aún no has definido ninguna zona destacada.",
     zones_tournament_label:"Competición / torneo",
+    tracking_title:"¿Quién ya pronosticó?",
+    tracking_desc:"Elige un partido para ver quiénes ya registraron su pronóstico y quiénes faltan — sin mostrar qué marcador puso cada quien.",
+    tracking_match_label:"Partido",
+    tracking_done:"Ya registró",
+    tracking_missing:"Todavía no",
+    tracking_summary:"jugadores ya registraron su pronóstico",
+    tracking_no_players:"Todavía no hay jugadores registrados.",
     db_warning_title:"No se pudo conectar bien con la base de datos",
     db_warning_desc:"Puede ser el proyecto de Supabase despertando (si estuvo inactivo se pausa solo) o tu conexión a internet. Por seguridad, NO se guardó ni se borró nada — lo que ves aquí es temporal. Espera unos segundos y reintenta.",
     db_warning_retry:"Reintentar",
@@ -871,6 +878,13 @@ const STR = {
     zones_desc:"Define which spots get highlighted and in what color — e.g. 1st-2nd in gold (go straight to semifinal), 3rd-6th in blue (play a mini-league), and the bottom 2 in red (relegated). Each tournament has its own zones, since not every league is structured the same way.",
     zones_empty:"You haven't defined any highlight zone yet.",
     zones_tournament_label:"Competition / tournament",
+    tracking_title:"Who's already predicted?",
+    tracking_desc:"Pick a match to see who has already submitted a prediction and who hasn't — without showing what score each person picked.",
+    tracking_match_label:"Match",
+    tracking_done:"Submitted",
+    tracking_missing:"Not yet",
+    tracking_summary:"players have already submitted their prediction",
+    tracking_no_players:"There are no registered players yet.",
     db_warning_title:"Couldn't connect to the database properly",
     db_warning_desc:"This can happen if the Supabase project is waking up (it auto-pauses after inactivity) or your internet connection. For safety, NOTHING was saved or deleted — what you see here is temporary. Wait a few seconds and retry.",
     db_warning_retry:"Retry",
@@ -2027,7 +2041,10 @@ function renderView(){
   else if(state.view === 'tabla') root.innerHTML = warning + renderLeaderboardView();
   else if(state.view === 'resultados' && state.profile && state.profile.isAdmin){
     root.innerHTML = warning + renderResultsAdminView();
-    if(state.matches.length) renderAdminScoreInputs();
+    if(state.matches.length){
+      renderAdminScoreInputs();
+      renderPredictionTrackingList();
+    }
     refreshPlayerManagementSection();
     refreshTournamentDiagnostics();
   }
@@ -2925,6 +2942,10 @@ function renderResultsAdminView(){
       <div class="hint" id="new-match-msg"></div>
     </div>
 
+    <div class="jornada-title" style="margin-top:30px;"><h2>${t('tracking_title')}</h2></div>
+    <p class="small-note" style="max-width:620px; display:block;">${t('tracking_desc')}</p>
+    ${renderPredictionTrackingAdmin()}
+
     <div class="jornada-title" style="margin-top:30px;"><h2>${t('combined_views_title')}</h2></div>
     <p class="small-note" style="max-width:620px; display:block;">${t('combined_views_desc')}</p>
     ${renderCombinedViewsAdmin()}
@@ -2961,6 +2982,52 @@ function renderResultsAdminView(){
       </div>
       <div class="hint" id="delete-tour-msg"></div>
     </div>
+  `;
+}
+
+// Seguimiento de quién ya registró su pronóstico para un partido — a
+// propósito NO muestra el marcador que cada quien puso, solo si ya lo
+// registró o no. Se basa en los pronósticos del torneo activo.
+function renderPredictionTrackingAdmin(){
+  if(state.matches.length === 0) return `<div class="empty-state">${t('empty_tournament')}</div>`;
+  const sorted = state.matches.slice().sort((a,b)=>kickoffDate(a)-kickoffDate(b));
+  const options = sorted.map(m =>
+    `<option value="${m.id}">${roundLabel(m.round)} — ${teamName(m.home)} ${t('vs_short')} ${teamName(m.away)}</option>`
+  ).join('');
+  return `
+    <div>
+      <label>${t('tracking_match_label')}</label>
+      <select id="tracking-match-select" onchange="renderPredictionTrackingList()">${options}</select>
+    </div>
+    <div id="tracking-list-container" style="margin-top:12px;"></div>
+  `;
+}
+
+function renderPredictionTrackingList(){
+  const container = document.getElementById('tracking-list-container');
+  if(!container) return;
+  const sel = document.getElementById('tracking-match-select');
+  const matchId = sel ? sel.value : null;
+  if(!matchId){ container.innerHTML = ''; return; }
+
+  const entries = Object.entries(playerDirectory).filter(([pid, entry]) => !entry.retired);
+  let doneCount = 0;
+  const rows = entries.map(([pid, entry]) => {
+    const pred = state.allPreds[pid] && state.allPreds[pid].preds && state.allPreds[pid].preds[matchId];
+    const done = !!(pred && pred.reg && pred.reg.home !== null && pred.reg.away !== null && !isNaN(pred.reg.home) && !isNaN(pred.reg.away));
+    if(done) doneCount++;
+    return `
+      <div class="csv-preview-row" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>${escapeHtml(entry.username || '???')}</span>
+        ${done
+          ? `<span class="csv-badge new">✅ ${t('tracking_done')}</span>`
+          : `<span class="csv-badge" style="background:rgba(230,57,70,.12); color:var(--red);">❌ ${t('tracking_missing')}</span>`}
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="small-note" style="display:block; margin-bottom:8px; font-weight:600;">${doneCount}/${entries.length} ${t('tracking_summary')}</div>
+    ${rows || `<div class="empty-state">${t('tracking_no_players')}</div>`}
   `;
 }
 
