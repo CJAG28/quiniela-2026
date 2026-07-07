@@ -540,6 +540,9 @@ const STR = {
     zones_desc:"Define qué lugares se resaltan y de qué color — por ejemplo 1°-2° en dorado (van directo a semifinal), 3°-6° en azul (juegan liguilla), y los últimos 2 en rojo (descienden). Cada torneo tiene sus propias zonas, porque no todas las ligas se estructuran igual.",
     zones_empty:"Aún no has definido ninguna zona destacada.",
     zones_tournament_label:"Competición / torneo",
+    db_warning_title:"No se pudo conectar bien con la base de datos",
+    db_warning_desc:"Puede ser el proyecto de Supabase despertando (si estuvo inactivo se pausa solo) o tu conexión a internet. Por seguridad, NO se guardó ni se borró nada — lo que ves aquí es temporal. Espera unos segundos y reintenta.",
+    db_warning_retry:"Reintentar",
     copy_table_btn:"Copiar tabla",
     share_whatsapp_btn:"Enviar por WhatsApp",
     copy_table_ok:"✓ Tabla copiada — ya la puedes pegar donde quieras",
@@ -868,6 +871,9 @@ const STR = {
     zones_desc:"Define which spots get highlighted and in what color — e.g. 1st-2nd in gold (go straight to semifinal), 3rd-6th in blue (play a mini-league), and the bottom 2 in red (relegated). Each tournament has its own zones, since not every league is structured the same way.",
     zones_empty:"You haven't defined any highlight zone yet.",
     zones_tournament_label:"Competition / tournament",
+    db_warning_title:"Couldn't connect to the database properly",
+    db_warning_desc:"This can happen if the Supabase project is waking up (it auto-pauses after inactivity) or your internet connection. For safety, NOTHING was saved or deleted — what you see here is temporary. Wait a few seconds and retry.",
+    db_warning_retry:"Retry",
     copy_table_btn:"Copy table",
     share_whatsapp_btn:"Send via WhatsApp",
     copy_table_ok:"✓ Table copied — paste it anywhere",
@@ -1394,9 +1400,9 @@ let customTournaments = [];
 // que dejen de aparecer, igual que si se hubieran eliminado.
 let hiddenBaseTournaments = [];
 async function loadHiddenBaseTournaments(){
-  const raw = await safeGet('hidden_base_tournaments', true);
-  if(!raw) return [];
-  try{ return JSON.parse(raw); }catch(e){ return []; }
+  const result = await safeGetStrict('hidden_base_tournaments', true);
+  if(!result.value) return [];
+  try{ return JSON.parse(result.value); }catch(e){ return []; }
 }
 async function saveHiddenBaseTournaments(){
   await safeSet('hidden_base_tournaments', JSON.stringify(hiddenBaseTournaments), true);
@@ -1422,17 +1428,17 @@ let playerDirectory = {};
 // cambia a "elige de esta lista" y cada nombre solo lo puede tomar una persona.
 let allowedUsernames = [];
 async function loadAllowedUsernames(){
-  const raw = await safeGet('allowed_usernames', true);
-  if(!raw) return [];
-  try{ return JSON.parse(raw); }catch(e){ return []; }
+  const result = await safeGetStrict('allowed_usernames', true);
+  if(!result.value) return [];
+  try{ return JSON.parse(result.value); }catch(e){ return []; }
 }
 async function saveAllowedUsernames(){
   await safeSet('allowed_usernames', JSON.stringify(allowedUsernames), true);
 }
 async function loadPlayerDirectory(){
-  const raw = await safeGet('player_directory', true);
-  if(!raw) return {};
-  try{ return JSON.parse(raw); }catch(e){ return {}; }
+  const result = await safeGetStrict('player_directory', true);
+  if(!result.value) return {};
+  try{ return JSON.parse(result.value); }catch(e){ return {}; }
 }
 async function savePlayerDirectory(){
   await safeSet('player_directory', JSON.stringify(playerDirectory), true);
@@ -1442,18 +1448,18 @@ function displayUsername(pid, fallback){
   return entry && entry.retired ? `${fallback} (${t('player_retired_tag')})` : fallback;
 }
 async function loadTournamentSettings(){
-  const raw = await safeGet('tournament_settings', true);
-  if(!raw) return {};
-  try{ return JSON.parse(raw); }catch(e){ return {}; }
+  const result = await safeGetStrict('tournament_settings', true);
+  if(!result.value) return {};
+  try{ return JSON.parse(result.value); }catch(e){ return {}; }
 }
 async function saveTournamentSettings(){
   await safeSet('tournament_settings', JSON.stringify(tournamentSettings), true);
 }
 
 async function loadCustomTournaments(){
-  const raw = await safeGet('custom_tournaments', true);
-  if(!raw) return [];
-  try{ return JSON.parse(raw); }catch(e){ return []; }
+  const result = await safeGetStrict('custom_tournaments', true);
+  if(!result.value) return [];
+  try{ return JSON.parse(result.value); }catch(e){ return []; }
 }
 async function saveCustomTournaments(){
   await safeSet('custom_tournaments', JSON.stringify(customTournaments), true);
@@ -1677,6 +1683,35 @@ function scopedKey(key, shared){
 }
 
 // ------------------ Storage helpers (ahora sobre Supabase) ------------------
+// Bandera global: se prende si alguna lectura de la base de datos falló por
+// un problema de conexión (no porque el dato genuinamente no exista todavía).
+// Sirve para avisar y, sobre todo, para que nunca se sobrescriban datos reales
+// con datos de ejemplo solo porque Supabase no respondió a tiempo.
+let dbConnectionWarning = false;
+
+// Como safeGet(), pero sin colapsar "la llave no existe" y "falló la
+// conexión" en el mismo null. Los loaders que SIEMBRAN datos de ejemplo la
+// primera vez (como loadMatches) la necesitan para saber si de verdad es
+// la primera vez, o si solo hubo un problema de red momentáneo — por
+// ejemplo, un proyecto de Supabase que se pausó solo por inactividad y
+// tarda unos segundos en "despertar" en la primera consulta.
+async function safeGetStrict(key, shared){
+  if(!sbClient){
+    // En este archivo las credenciales siempre están puestas (no hay
+    // modo "sin configurar"), así que si sbClient es null lo más probable
+    // es que la librería de supabase-js no haya cargado (CDN caído,
+    // bloqueador de anuncios, sin internet) — vale la pena avisar.
+    dbConnectionWarning = true;
+    return {ok:false, value:null};
+  }
+  try{
+    const k = scopedKey(key, shared);
+    const { data, error } = await sbClient.from('kv_store').select('value').eq('key', k).maybeSingle();
+    if(error){ dbConnectionWarning = true; return {ok:false, value:null}; }
+    return {ok:true, value: data ? data.value : null};
+  }catch(e){ dbConnectionWarning = true; return {ok:false, value:null}; }
+}
+
 async function safeGet(key, shared){
   if(!sbClient) return null;
   try{
@@ -1727,9 +1762,9 @@ function logosKey(tournamentId){ return 'team_logos:' + tournamentId; }
 function combinedViewsKey(tournamentId){ return 'combined_views:' + tournamentId; }
 
 async function loadCombinedViews(tournamentId){
-  const raw = await safeGet(combinedViewsKey(tournamentId), true);
-  if(!raw) return [];
-  try{ return JSON.parse(raw); }catch(e){ return []; }
+  const result = await safeGetStrict(combinedViewsKey(tournamentId), true);
+  if(!result.value) return [];
+  try{ return JSON.parse(result.value); }catch(e){ return []; }
 }
 async function saveCombinedViews(tournamentId, views){
   await safeSet(combinedViewsKey(tournamentId), JSON.stringify(views), true);
@@ -1739,18 +1774,18 @@ function distinctRounds(){
 }
 function standingsZonesKey(tournamentId){ return 'standings_zones:' + tournamentId; }
 async function loadStandingsZones(tournamentId){
-  const raw = await safeGet(standingsZonesKey(tournamentId), true);
-  if(!raw) return [];
-  try{ return JSON.parse(raw); }catch(e){ return []; }
+  const result = await safeGetStrict(standingsZonesKey(tournamentId), true);
+  if(!result.value) return [];
+  try{ return JSON.parse(result.value); }catch(e){ return []; }
 }
 async function saveStandingsZones(tournamentId, zones){
   await safeSet(standingsZonesKey(tournamentId), JSON.stringify(zones), true);
 }
 
 async function loadTeamLogos(tournamentId){
-  const raw = await safeGet(logosKey(tournamentId), true);
-  if(!raw) return {};
-  try{ return JSON.parse(raw); }catch(e){ return {}; }
+  const result = await safeGetStrict(logosKey(tournamentId), true);
+  if(!result.value) return {};
+  try{ return JSON.parse(result.value); }catch(e){ return {}; }
 }
 async function saveTeamLogos(tournamentId, logos){
   const json = JSON.stringify(logos);
@@ -1768,11 +1803,20 @@ async function saveTeamLogos(tournamentId, logos){
 }
 
 async function loadMatches(tournamentId){
-  const raw = await safeGet(matchesKey(tournamentId), true);
-  if(raw){
-    try{ return JSON.parse(raw); }catch(e){ /* fall through */ }
+  const result = await safeGetStrict(matchesKey(tournamentId), true);
+  if(result.value){
+    try{ return JSON.parse(result.value); }catch(e){ /* JSON dañado: sigue abajo */ }
   }
-  // Sembrar datos por primera vez (para torneos nuevos, arranca en vacío)
+  if(!result.ok){
+    // No se pudo confirmar si había partidos guardados (problema de conexión,
+    // por ejemplo un proyecto de Supabase pausado que apenas está
+    // despertando). Se muestran los partidos de ejemplo SOLO en pantalla,
+    // sin guardarlos — así, en cuanto la conexión se restablezca, se
+    // recuperan los partidos reales en vez de quedar pisados para siempre.
+    return (SEED_MATCHES_BY_TOURNAMENT[tournamentId] || []).slice();
+  }
+  // Aquí sí se confirmó (sin error) que la llave genuinamente no existe
+  // todavía — un torneo nuevo de verdad. Ahora sí se siembra una sola vez.
   const seed = SEED_MATCHES_BY_TOURNAMENT[tournamentId] || [];
   await safeSet(matchesKey(tournamentId), JSON.stringify(seed), true);
   return seed.slice();
@@ -1947,22 +1991,51 @@ function goTo(view){
   renderView();
 }
 
+function connectionWarningBannerHtml(){
+  if(!dbConnectionWarning) return '';
+  return `
+    <div class="banner" style="background:rgba(230,57,70,.12); border:1px solid var(--red);">
+      <div>
+        <div class="rajd" style="font-weight:700; color:var(--red);">⚠️ ${t('db_warning_title')}</div>
+        <div class="small-note" style="display:block; margin-top:2px;">${t('db_warning_desc')}</div>
+      </div>
+      <button class="btn ghost" onclick="retryConnection()">${t('db_warning_retry')}</button>
+    </div>`;
+}
+
+async function retryConnection(){
+  dbConnectionWarning = false;
+  await switchTournamentReload();
+  goTo(state.view);
+}
+// Vuelve a cargar todo lo del torneo activo (sin cambiarlo), para reintentar
+// tras un problema de conexión.
+async function switchTournamentReload(){
+  state.matches = await loadMatches(state.tournament);
+  state.myPreds = await loadMyPreds(state.tournament);
+  state.allPreds = await loadAllPreds(state.tournament);
+  state.teamLogos = await loadTeamLogos(state.tournament);
+  state.combinedViews = await loadCombinedViews(state.tournament);
+  state.standingsZones = await loadStandingsZones(state.tournament);
+}
+
 function renderView(){
   const root = document.getElementById('view-root');
   root.style.setProperty('--tour-color', tournamentColor(state.tournament));
-  if(state.view === 'pronosticos') root.innerHTML = renderPredictionsView();
-  else if(state.view === 'tabla') root.innerHTML = renderLeaderboardView();
+  const warning = connectionWarningBannerHtml();
+  if(state.view === 'pronosticos') root.innerHTML = warning + renderPredictionsView();
+  else if(state.view === 'tabla') root.innerHTML = warning + renderLeaderboardView();
   else if(state.view === 'resultados' && state.profile && state.profile.isAdmin){
-    root.innerHTML = renderResultsAdminView();
+    root.innerHTML = warning + renderResultsAdminView();
     if(state.matches.length) renderAdminScoreInputs();
     refreshPlayerManagementSection();
     refreshTournamentDiagnostics();
   }
   else if(state.view === 'perfil'){
-    root.innerHTML = renderProfileView();
+    root.innerHTML = warning + renderProfileView();
     refreshOrphanClaimSection();
   }
-  else root.innerHTML = renderPredictionsView();
+  else root.innerHTML = warning + renderPredictionsView();
   wireDynamicHandlers();
 }
 
